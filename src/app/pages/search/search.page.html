@@ -1,0 +1,71 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Melodix</ion-title>
+    <ion-buttons slot="end">
+      <ion-button routerLink="/library" aria-label="Abrir biblioteca">
+        <ion-icon name="library-outline" aria-hidden="true"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <section class="search-hero">
+    <h1>Busque previews do Spotify</h1>
+    <p>Encontre faixas, salve favoritas e monte playlists na sua sessão.</p>
+  </section>
+
+  <ion-searchbar
+    mode="ios"
+    placeholder="Buscar música, artista ou álbum"
+    [value]="query"
+    debounce="0"
+    (ionInput)="onSearch($event)"
+  ></ion-searchbar>
+
+  <ion-note color="danger" *ngIf="errorMessage">{{ errorMessage }}</ion-note>
+
+  <div class="search-state" *ngIf="!loading && !query">
+    <ion-icon name="sparkles-outline" aria-hidden="true"></ion-icon>
+    <p>Digite para começar.</p>
+  </div>
+
+  <ion-list *ngIf="loading">
+    <ion-item lines="none" *ngFor="let skeleton of [1, 2, 3, 4]">
+      <ion-thumbnail slot="start">
+        <ion-skeleton-text animated></ion-skeleton-text>
+      </ion-thumbnail>
+      <ion-label>
+        <h3><ion-skeleton-text animated style="width: 70%"></ion-skeleton-text></h3>
+        <p><ion-skeleton-text animated style="width: 45%"></ion-skeleton-text></p>
+      </ion-label>
+    </ion-item>
+  </ion-list>
+
+  <ng-container *ngIf="favoriteIds$ | async as favoriteIds">
+    <app-track-item
+      *ngFor="let track of results; trackBy: trackByTrackId"
+      [track]="track"
+      [favorite]="favoriteIds.has(track.id)"
+      (playTrack)="play($event)"
+      (toggleFavorite)="toggleFavorite($event)"
+      (addToPlaylist)="addToPlaylist($event)"
+    ></app-track-item>
+  </ng-container>
+</ion-content>
+
+<ion-footer>
+  <ion-toolbar>
+    <ion-segment value="search">
+      <ion-segment-button value="search" routerLink="/search">
+        <ion-icon name="search-outline" aria-hidden="true"></ion-icon>
+      </ion-segment-button>
+      <ion-segment-button value="playlists" routerLink="/playlists">
+        <ion-icon name="albums-outline" aria-hidden="true"></ion-icon>
+      </ion-segment-button>
+      <ion-segment-button value="library" routerLink="/library">
+        <ion-icon name="heart-outline" aria-hidden="true"></ion-icon>
+      </ion-segment-button>
+    </ion-segment>
+  </ion-toolbar>
+</ion-footer>

@@ -1,0 +1,33 @@
+ion-content {
+  --padding-bottom: 112px;
+}
+
+ion-segment {
+  margin-bottom: 18px;
+}
+
+ion-list {
+  background: transparent;
+}
+
+ion-item {
+  --background: rgba(255, 255, 255, 0.06);
+  --border-radius: 8px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
+
+.empty-state {
+  align-items: center;
+  color: var(--ion-color-medium);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  justify-content: center;
+  min-height: 48vh;
+  text-align: center;
+}
+
+.empty-state ion-icon {
+  font-size: 3rem;
+}

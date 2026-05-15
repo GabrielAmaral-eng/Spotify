@@ -1,0 +1,48 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/playlists"></ion-back-button>
+    </ion-buttons>
+    <ion-title>{{ playlist?.name || 'Playlist' }}</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <ng-container *ngIf="playlist as currentPlaylist">
+    <section class="playlist-heading">
+      <div class="playlist-cover playlist-cover--large">
+        <ion-icon name="albums-outline" aria-hidden="true"></ion-icon>
+      </div>
+      <div>
+        <h1>{{ currentPlaylist.name }}</h1>
+        <p>{{ currentPlaylist.description || 'Playlist da sua sessão Melodix' }}</p>
+        <span>{{ currentPlaylist.tracks.length }} músicas</span>
+      </div>
+    </section>
+
+    <div class="empty-state" *ngIf="currentPlaylist.tracks.length === 0">
+      <ion-icon name="add-circle-outline" aria-hidden="true"></ion-icon>
+      <h1>Adicione músicas pela busca</h1>
+      <ion-button routerLink="/search">Buscar</ion-button>
+    </div>
+
+    <app-track-item
+      *ngFor="let track of currentPlaylist.tracks; trackBy: trackByTrackId"
+      [track]="track"
+      [showActions]="false"
+      [removable]="true"
+      (playTrack)="play($event)"
+      (removeTrack)="removeTrack($event)"
+    ></app-track-item>
+
+    <ion-button
+      expand="block"
+      fill="outline"
+      *ngIf="currentPlaylist.tracks.length > 0"
+      routerLink="/search"
+    >
+      Adicionar mais músicas
+    </ion-button>
+
+  </ng-container>
+</ion-content>

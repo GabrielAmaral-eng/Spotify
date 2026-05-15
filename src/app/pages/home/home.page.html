@@ -1,0 +1,50 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Melodix</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <section>
+    <h1>Sua sessão musical</h1>
+    <p>Playlists e favoritos ficam salvos no Supabase sem exigir login.</p>
+  </section>
+
+  <div class="quick-actions">
+    <ion-button expand="block" routerLink="/search">
+      <ion-icon name="search-outline" slot="start" aria-hidden="true"></ion-icon>
+      Buscar músicas
+    </ion-button>
+    <ion-button expand="block" fill="outline" routerLink="/playlists">
+      <ion-icon name="albums-outline" slot="start" aria-hidden="true"></ion-icon>
+      Ver playlists
+    </ion-button>
+  </div>
+
+  <div class="stats">
+    <div>
+      <strong>{{ (playlists$ | async)?.length || 0 }}</strong>
+      <span>Playlists</span>
+    </div>
+    <div>
+      <strong>{{ (favorites$ | async)?.length || 0 }}</strong>
+      <span>Favoritos</span>
+    </div>
+  </div>
+</ion-content>
+
+<ion-footer>
+  <ion-toolbar>
+    <ion-segment value="home">
+      <ion-segment-button value="search" routerLink="/search">
+        <ion-icon name="search-outline" aria-hidden="true"></ion-icon>
+      </ion-segment-button>
+      <ion-segment-button value="playlists" routerLink="/playlists">
+        <ion-icon name="albums-outline" aria-hidden="true"></ion-icon>
+      </ion-segment-button>
+      <ion-segment-button value="library" routerLink="/library">
+        <ion-icon name="heart-outline" aria-hidden="true"></ion-icon>
+      </ion-segment-button>
+    </ion-segment>
+  </ion-toolbar>
+</ion-footer>

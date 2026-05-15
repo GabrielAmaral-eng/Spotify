@@ -1,0 +1,76 @@
+ion-content {
+  --padding-bottom: 112px;
+}
+
+ion-list {
+  background: transparent;
+}
+
+ion-item {
+  --background: rgba(255, 255, 255, 0.06);
+  --border-radius: 8px;
+  --inner-padding-end: 8px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
+
+.playlist-cover {
+  align-items: center;
+  background: linear-gradient(135deg, #1db954, #00a6a6 56%, #ff6b6b);
+  border-radius: 8px;
+  color: #07100c;
+  display: flex;
+  height: 52px;
+  justify-content: center;
+  overflow: hidden;
+  width: 52px;
+}
+
+.playlist-cover img {
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+.playlist-cover--large {
+  flex: 0 0 92px;
+  height: 92px;
+  width: 92px;
+}
+
+.playlist-heading {
+  align-items: center;
+  display: flex;
+  gap: 16px;
+  margin-bottom: 22px;
+}
+
+.playlist-heading h1 {
+  font-size: 1.45rem;
+  margin: 0 0 6px;
+}
+
+.playlist-heading p,
+.playlist-heading span,
+ion-label p {
+  color: var(--ion-color-medium);
+}
+
+.playlist-heading p {
+  margin: 0 0 4px;
+}
+
+.empty-state {
+  align-items: center;
+  color: var(--ion-color-medium);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  justify-content: center;
+  min-height: 48vh;
+  text-align: center;
+}
+
+.empty-state ion-icon {
+  font-size: 3rem;
+}

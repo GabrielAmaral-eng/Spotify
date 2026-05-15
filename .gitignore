@@ -11,6 +11,7 @@ $RECYCLE.BIN/
 
 *.log
 log.txt
+backend/.env
 
 
 /.sourcemaps
@@ -25,12 +26,14 @@ log.txt
 
 # Compiled output
 /dist
+backend/dist
 /tmp
 /out-tsc
 /bazel-out
 
 # Node
 /node_modules
+**/node_modules
 npm-debug.log
 yarn-error.log
 

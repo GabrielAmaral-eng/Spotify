@@ -1,0 +1,15 @@
+{
+  "name": "Melodix",
+  "short_name": "Melodix",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#090d0b",
+  "theme_color": "#090d0b",
+  "icons": [
+    {
+      "src": "icon/favicon.png",
+      "sizes": "64x64",
+      "type": "image/png"
+    }
+  ]
+}

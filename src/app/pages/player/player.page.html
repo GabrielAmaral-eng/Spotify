@@ -1,0 +1,57 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/search"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Player</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <ng-container *ngIf="currentTrack$ | async as track; else emptyPlayer">
+    <section class="player-shell">
+      <img *ngIf="track.thumbnail" class="player-cover" [src]="track.thumbnail" [alt]="track.album" />
+
+      <div class="player-meta">
+        <p>{{ track.album }}</p>
+        <h1>{{ track.title }}</h1>
+        <span>{{ track.artist }}</span>
+      </div>
+
+      <ion-range
+        min="0"
+        max="100"
+        [value]="progress$ | async"
+        aria-label="Progresso"
+        (ionChange)="seek($event)"
+      ></ion-range>
+
+      <div class="player-actions" *ngIf="favoriteIds$ | async as favoriteIds">
+        <ion-button
+          fill="clear"
+          type="button"
+          [attr.aria-label]="favoriteIds.has(track.id) ? 'Remover dos favoritos' : 'Favoritar'"
+          (click)="toggleFavorite(track)"
+        >
+          <ion-icon [name]="favoriteIds.has(track.id) ? 'heart' : 'heart-outline'" aria-hidden="true"></ion-icon>
+        </ion-button>
+
+        <ion-button class="play-button" type="button" aria-label="Alternar reprodução" (click)="toggle()">
+          <ion-icon [name]="(isPlaying$ | async) ? 'pause' : 'play'" aria-hidden="true"></ion-icon>
+        </ion-button>
+
+        <ion-button fill="clear" type="button" aria-label="Adicionar à playlist" (click)="addToPlaylist(track)">
+          <ion-icon name="add-circle-outline" aria-hidden="true"></ion-icon>
+        </ion-button>
+      </div>
+    </section>
+  </ng-container>
+
+  <ng-template #emptyPlayer>
+    <div class="empty-player">
+      <ion-icon name="radio-outline" aria-hidden="true"></ion-icon>
+      <h1>Nenhuma música tocando</h1>
+      <ion-button routerLink="/search">Buscar músicas</ion-button>
+    </div>
+  </ng-template>
+</ion-content>

@@ -1,0 +1,20 @@
+<ng-container *ngIf="currentTrack$ | async as track">
+  <div class="mini-player" [routerLink]="['/player']">
+    <div class="mini-player__progress">
+      <span [style.width.%]="progress$ | async"></span>
+    </div>
+
+    <img *ngIf="track.thumbnail" [src]="track.thumbnail" [alt]="track.album" />
+    <div class="mini-player__meta">
+      <strong>{{ track.title }}</strong>
+      <span>{{ track.artist }}</span>
+    </div>
+
+    <ion-button fill="clear" type="button" aria-label="Alternar reprodução" (click)="toggle($event)">
+      <ion-icon
+        [name]="(isPlaying$ | async) ? 'pause' : 'play'"
+        aria-hidden="true"
+      ></ion-icon>
+    </ion-button>
+  </div>
+</ng-container>

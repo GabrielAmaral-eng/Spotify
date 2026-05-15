@@ -1,0 +1,82 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Biblioteca</ion-title>
+    <ion-buttons slot="end">
+      <ion-button routerLink="/search" aria-label="Buscar músicas">
+        <ion-icon name="search-outline" aria-hidden="true"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <ion-segment [value]="segment" (ionChange)="segmentChanged($event)">
+    <ion-segment-button value="favorites">
+      <ion-label>Favoritos</ion-label>
+    </ion-segment-button>
+    <ion-segment-button value="playlists">
+      <ion-label>Playlists</ion-label>
+    </ion-segment-button>
+  </ion-segment>
+
+  <section *ngIf="segment === 'favorites'">
+    <ng-container *ngIf="favorites$ | async as favorites">
+      <div class="empty-state" *ngIf="favorites.length === 0">
+        <ion-icon name="heart-outline" aria-hidden="true"></ion-icon>
+        <h1>Nada favoritado</h1>
+        <ion-button routerLink="/search">Buscar músicas</ion-button>
+      </div>
+
+      <app-track-item
+        *ngFor="let track of favorites; trackBy: trackByTrackId"
+        [track]="track"
+        [favorite]="true"
+        [showActions]="false"
+        [removable]="true"
+        (playTrack)="play($event)"
+        (removeTrack)="removeFavorite($event)"
+      ></app-track-item>
+    </ng-container>
+  </section>
+
+  <section *ngIf="segment === 'playlists'">
+    <ng-container *ngIf="playlists$ | async as playlists">
+      <div class="empty-state" *ngIf="playlists.length === 0">
+        <ion-icon name="albums-outline" aria-hidden="true"></ion-icon>
+        <h1>Sem playlists</h1>
+        <ion-button routerLink="/playlists">Criar playlist</ion-button>
+      </div>
+
+      <ion-list *ngIf="playlists.length > 0">
+        <ion-item
+          button
+          lines="none"
+          *ngFor="let playlist of playlists; trackBy: trackByPlaylistId"
+          (click)="openPlaylist(playlist)"
+        >
+          <ion-icon name="albums-outline" slot="start" aria-hidden="true"></ion-icon>
+          <ion-label>
+            <h2>{{ playlist.name }}</h2>
+            <p>{{ playlist.tracks.length }} músicas</p>
+          </ion-label>
+        </ion-item>
+      </ion-list>
+    </ng-container>
+  </section>
+</ion-content>
+
+<ion-footer>
+  <ion-toolbar>
+    <ion-segment value="library">
+      <ion-segment-button value="search" routerLink="/search">
+        <ion-icon name="search-outline" aria-hidden="true"></ion-icon>
+      </ion-segment-button>
+      <ion-segment-button value="playlists" routerLink="/playlists">
+        <ion-icon name="albums-outline" aria-hidden="true"></ion-icon>
+      </ion-segment-button>
+      <ion-segment-button value="library" routerLink="/library">
+        <ion-icon name="heart-outline" aria-hidden="true"></ion-icon>
+      </ion-segment-button>
+    </ion-segment>
+  </ion-toolbar>
+</ion-footer>

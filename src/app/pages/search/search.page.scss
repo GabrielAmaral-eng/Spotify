@@ -1,0 +1,38 @@
+ion-content {
+  --padding-bottom: 112px;
+}
+
+.search-hero {
+  margin: 4px 0 16px;
+}
+
+h1 {
+  font-size: 1.55rem;
+  line-height: 1.12;
+  margin: 0 0 8px;
+}
+
+p {
+  color: var(--ion-color-medium);
+  margin: 0;
+}
+
+ion-searchbar {
+  --background: rgba(255, 255, 255, 0.08);
+  --border-radius: 8px;
+  --box-shadow: none;
+  padding: 0 0 14px;
+}
+
+.search-state {
+  align-items: center;
+  color: var(--ion-color-medium);
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  min-height: 180px;
+}
+
+ion-list {
+  background: transparent;
+}

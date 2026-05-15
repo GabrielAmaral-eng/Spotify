@@ -9,7 +9,10 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
-    "lint": "ng lint"
+    "lint": "ng lint",
+    "backend:dev": "npm run dev --prefix backend",
+    "backend:build": "npm run build --prefix backend",
+    "backend:prisma:generate": "npm run prisma:generate --prefix backend"
   },
   "private": true,
   "dependencies": {
@@ -27,6 +30,7 @@
     "@capacitor/keyboard": "8.0.3",
     "@capacitor/status-bar": "8.0.2",
     "@ionic/angular": "^8.0.0",
+    "@ionic/storage-angular": "^4.0.0",
     "ionicons": "^7.0.0",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",

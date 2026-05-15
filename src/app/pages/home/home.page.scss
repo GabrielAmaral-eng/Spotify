@@ -1,0 +1,48 @@
+ion-content {
+  --padding-bottom: 112px;
+}
+
+section {
+  margin: 18px 0 24px;
+}
+
+h1 {
+  font-size: 1.7rem;
+  margin: 0 0 8px;
+}
+
+p {
+  color: var(--ion-color-medium);
+  margin: 0;
+}
+
+.quick-actions {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 22px;
+}
+
+.stats {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.stats div {
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.stats strong,
+.stats span {
+  display: block;
+}
+
+.stats strong {
+  font-size: 1.8rem;
+}
+
+.stats span {
+  color: var(--ion-color-medium);
+}

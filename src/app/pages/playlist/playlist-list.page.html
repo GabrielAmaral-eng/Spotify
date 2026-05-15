@@ -1,0 +1,61 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Playlists</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="createPlaylist()" aria-label="Criar playlist">
+        <ion-icon name="add" aria-hidden="true"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <ng-container *ngIf="playlists$ | async as playlists">
+    <div class="empty-state" *ngIf="playlists.length === 0">
+      <ion-icon name="albums-outline" aria-hidden="true"></ion-icon>
+      <h1>Sem playlists ainda</h1>
+      <ion-button (click)="createPlaylist()">Criar playlist</ion-button>
+    </div>
+
+    <ion-list *ngIf="playlists.length > 0">
+      <ion-item
+        button
+        lines="none"
+        *ngFor="let playlist of playlists; trackBy: trackByPlaylistId"
+        (click)="openPlaylist(playlist)"
+      >
+        <div class="playlist-cover" slot="start">
+          <img *ngIf="playlist.cover; else coverFallback" [src]="playlist.cover" [alt]="playlist.name" />
+          <ng-template #coverFallback>
+            <ion-icon name="albums-outline" aria-hidden="true"></ion-icon>
+          </ng-template>
+        </div>
+
+        <ion-label>
+          <h2>{{ playlist.name }}</h2>
+          <p>{{ playlist.tracks.length }} músicas</p>
+        </ion-label>
+
+        <ion-button fill="clear" slot="end" aria-label="Remover playlist" (click)="deletePlaylist($event, playlist)">
+          <ion-icon name="trash-outline" aria-hidden="true"></ion-icon>
+        </ion-button>
+      </ion-item>
+    </ion-list>
+  </ng-container>
+</ion-content>
+
+<ion-footer>
+  <ion-toolbar>
+    <ion-segment value="playlists">
+      <ion-segment-button value="search" routerLink="/search">
+        <ion-icon name="search-outline" aria-hidden="true"></ion-icon>
+      </ion-segment-button>
+      <ion-segment-button value="playlists" routerLink="/playlists">
+        <ion-icon name="albums-outline" aria-hidden="true"></ion-icon>
+      </ion-segment-button>
+      <ion-segment-button value="library" routerLink="/library">
+        <ion-icon name="heart-outline" aria-hidden="true"></ion-icon>
+      </ion-segment-button>
+    </ion-segment>
+  </ion-toolbar>
+</ion-footer>
