@@ -1,5 +1,100 @@
+@font-face {
+  font-family: 'Dune Rise';
+  src: url('/assets/Fonts/Dune_Rise.ttf') format('truetype');
+}
+
 ion-content {
   --padding-bottom: 112px;
+  --padding-top: 0;
+}
+
+.search-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+  gap: 16px;
+  padding: 0 16px;
+}
+
+.logo-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.logo-icon {
+  width: 35px;
+  height: 35px;
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.8));
+}
+
+.melodix-text {
+  font-family: 'Dune Rise', sans-serif;
+  font-size: 24px;
+  font-weight: bold;
+  color: #ffffff;
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.8));
+  letter-spacing: 1px;
+}
+
+.search-bar {
+  flex: 1;
+  max-width: 50%;
+  --background: transparent;
+  --border-radius: 999px;
+  --box-shadow: none;
+  --color: #ffffff;
+  --placeholder-color: rgba(255, 255, 255, 0.7);
+  --icon-color: #ffffff;
+  --clear-button-color: #ffffff;
+
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.8));
+  transition: filter 0.2s ease, transform 0.2s ease;
+
+  &:hover {
+    filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.8));
+    transform: scale(1.02);
+  }
+
+  ::ng-deep .searchbar-input {
+    border: 2px solid #ffffff !important;
+    background: transparent !important;
+    border-radius: 999px !important;
+    padding-inline-start: 50px !important;
+  }
+
+  ::ng-deep .searchbar-search-icon {
+    left: 26px !important;
+  }
+}
+
+.library-btn {
+  flex-shrink: 0;
+  --padding-start: 8px;
+  --padding-end: 8px;
+  --background: transparent;
+  --background-hover: transparent;
+  --background-focused: transparent;
+  --background-activated: transparent;
+  transition: transform 0.2s ease;
+
+  &:hover {
+    transform: scale(1.1);
+
+    .library-icon {
+      filter: drop-shadow(0 0 8.4px rgba(255, 255, 255, 0.6));
+    }
+  }
+}
+
+.library-icon {
+  width: 28px;
+  height: 28px;
+  filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.6));
+  transition: filter 0.2s ease;
 }
 
 .search-hero {
@@ -17,22 +112,164 @@ p {
   margin: 0;
 }
 
-ion-searchbar {
-  --background: rgba(255, 255, 255, 0.08);
-  --border-radius: 8px;
-  --box-shadow: none;
-  padding: 0 0 14px;
-}
-
 .search-state {
   align-items: center;
   color: var(--ion-color-medium);
   display: flex;
   gap: 8px;
   justify-content: center;
-  min-height: 180px;
+  flex: 1;
+}
+
+.idle-area {
+  display: flex;
+  align-items: center;
+  min-height: calc(100vh - 220px);
+  margin-top: 16px;
+  position: relative;
+
+  &::before,
+  &::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 120px;
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  &::before {
+    top: 0;
+    background: linear-gradient(to bottom, var(--ion-background-color, #000) 0%, transparent 100%);
+  }
+
+  &::after {
+    bottom: 0;
+    background: linear-gradient(to top, var(--ion-background-color, #000) 0%, transparent 100%);
+  }
+}
+
+.song-wheel {
+  position: relative;
+  width: 55%;
+  max-width: 720px;
+  height: 600px;
+  overflow: visible;
+  outline: none;
+  flex-shrink: 0;
+  margin-left: -16px;
+}
+
+.wheel-arc-circle {
+  position: absolute;
+  left: -760px;
+  top: calc(50% - 480px);
+  width: 960px;
+  height: 960px;
+  border-radius: 50%;
+  pointer-events: none;
+
+  // Técnica: pseudo-elemento com padding + mask-composite cria o anel gradiente
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    padding: 2px; // espessura da borda
+
+    // Gradiente vertical: invisível → branco → invisível
+    background: linear-gradient(
+      to bottom,
+      rgba(255, 255, 255, 0)   22%,
+      rgba(255, 255, 255, 1)  50%,
+      rgba(255, 255, 255, 0) 78%
+    );
+
+    // Recorta apenas a área de padding (2px), removendo o interior
+    -webkit-mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+
+    // Glow sutil
+    filter:
+      drop-shadow(0 0 5px  rgba(255, 255, 255, 0.45))
+      drop-shadow(0 0 16px rgba(255, 255, 255, 0.2));
+  }
+}
+
+.wheel-item {
+  position: absolute;
+  left: 200px;
+  top: 50%;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  color: #ffffff;
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+  white-space: nowrap;
+
+  &.selected {
+    .wheel-title {
+      font-size: 30px;
+      font-weight: 500;
+      letter-spacing: 0.5px;
+    }
+
+    .wheel-dot {
+      width: 22px;
+      height: 22px;
+      background: transparent;
+      border: 2px solid #ffffff;
+      box-shadow: 0 0 14px rgba(255, 255, 255, 0.55);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      &::after {
+        content: '';
+        width: 8px;
+        height: 8px;
+        background: #ffffff;
+        border-radius: 50%;
+      }
+    }
+  }
+}
+
+.wheel-dot {
+  width: 10px;
+  height: 10px;
+  background: rgba(255, 255, 255, 0.85);
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: all 0.3s ease;
+}
+
+.wheel-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.wheel-title {
+  font-size: 17px;
+  font-weight: 500;
+  color: #ffffff;
+  line-height: 1.15;
+  transition: font-size 0.3s ease;
+}
+
+.wheel-artist {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.65);
+  margin-top: 4px;
 }
 
 ion-list {
   background: transparent;
+  margin-top: 24px;
 }
