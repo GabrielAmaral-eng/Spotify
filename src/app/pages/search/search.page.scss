@@ -126,6 +126,28 @@ p {
   align-items: center;
   min-height: calc(100vh - 220px);
   margin-top: 16px;
+  position: relative;
+
+  &::before,
+  &::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 120px;
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  &::before {
+    top: 0;
+    background: linear-gradient(to bottom, var(--ion-background-color, #000) 0%, transparent 100%);
+  }
+
+  &::after {
+    bottom: 0;
+    background: linear-gradient(to top, var(--ion-background-color, #000) 0%, transparent 100%);
+  }
 }
 
 .song-wheel {
@@ -133,7 +155,7 @@ p {
   width: 55%;
   max-width: 720px;
   height: 600px;
-  overflow: hidden;
+  overflow: visible;
   outline: none;
   flex-shrink: 0;
   margin-left: -16px;
