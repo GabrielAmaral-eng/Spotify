@@ -1,33 +1,57 @@
-<ion-header>
-  <ion-toolbar>
-    <ion-title>Melodix</ion-title>
-    <ion-buttons slot="end">
-      <ion-button routerLink="/library" aria-label="Abrir biblioteca">
-        <ion-icon name="library-outline" aria-hidden="true"></ion-icon>
-      </ion-button>
-    </ion-buttons>
-  </ion-toolbar>
-</ion-header>
-
 <ion-content class="ion-padding">
-  <section class="search-hero">
-    <h1>Busque previews do Spotify</h1>
-    <p>Encontre faixas, salve favoritas e monte playlists na sua sessão.</p>
-  </section>
+  <!-- Top Bar with Logo, Search Bar, and Library Button -->
+  <div class="search-top-bar">
+    <!-- Logo and Melodix Text -->
+    <div class="logo-section">
+      <img src="assets/icon/Melodix_Logo.svg" alt="Melodix" class="logo-icon" />
+      <span class="melodix-text">Melodix</span>
+    </div>
 
-  <ion-searchbar
-    mode="ios"
-    placeholder="Buscar música, artista ou álbum"
-    [value]="query"
-    debounce="0"
-    (ionInput)="onSearch($event)"
-  ></ion-searchbar>
+    <!-- Search Bar -->
+    <ion-searchbar
+      class="search-bar"
+      mode="ios"
+      placeholder="Buscar música, artista ou álbum"
+      [value]="query"
+      debounce="0"
+      (ionInput)="onSearch($event)"
+    ></ion-searchbar>
+
+    <!-- Library Button -->
+    <ion-button class="library-btn" routerLink="/library" aria-label="Abrir biblioteca">
+      <img src="assets/icon/Library.svg" alt="Library" class="library-icon" />
+    </ion-button>
+  </div>
 
   <ion-note color="danger" *ngIf="errorMessage">{{ errorMessage }}</ion-note>
 
-  <div class="search-state" *ngIf="!loading && !query">
-    <ion-icon name="sparkles-outline" aria-hidden="true"></ion-icon>
-    <p>Digite para começar.</p>
+  <div class="idle-area" *ngIf="!loading && !query">
+    <div
+      class="song-wheel"
+      (wheel)="onWheel($event)"
+      (mouseenter)="onWheelMouseEnter($event)"
+      tabindex="0"
+    >
+      <div class="wheel-arc-circle"></div>
+      <div
+        *ngFor="let song of mockSongs; let i = index; trackBy: trackBySongId"
+        class="wheel-item"
+        [class.selected]="i === selectedSongIndex"
+        [style.transform]="getItemTransform(getOffsetForSong(i))"
+        [style.opacity]="getItemOpacity(getOffsetForSong(i))"
+      >
+        <div class="wheel-dot"></div>
+        <div class="wheel-text">
+          <div class="wheel-title">{{ song.title }}</div>
+          <div class="wheel-artist">{{ song.artist }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="search-state">
+      <ion-icon name="sparkles-outline" aria-hidden="true"></ion-icon>
+      <p>Digite para começar.</p>
+    </div>
   </div>
 
   <ion-list *ngIf="loading">
@@ -54,7 +78,7 @@
   </ng-container>
 </ion-content>
 
-<ion-footer>
+<!-- <ion-footer>
   <ion-toolbar>
     <ion-segment value="search">
       <ion-segment-button value="search" routerLink="/search">
@@ -68,4 +92,4 @@
       </ion-segment-button>
     </ion-segment>
   </ion-toolbar>
-</ion-footer>
+</ion-footer> -->

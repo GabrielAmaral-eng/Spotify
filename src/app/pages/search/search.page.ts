@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, inject } from '@angular/core';
+import { Component, HostListener, OnDestroy, OnInit, inject } from '@angular/core';
 import { ActionSheetController, AlertController, ToastController } from '@ionic/angular';
 import {
   Subject,
@@ -37,6 +37,23 @@ export class SearchPage implements OnInit, OnDestroy {
   query = '';
   loading = false;
   errorMessage = '';
+
+  readonly mockSongs: ReadonlyArray<{ id: string; title: string; artist: string }> = [
+    { id: 'eclipse', title: 'Eclipse dos Dias', artist: 'Tessália' },
+    { id: 'horizonte', title: 'Horizonte de Neon', artist: 'Vértice' },
+    { id: 'coracao', title: 'Coração de Fumaça', artist: 'Lunário' },
+    { id: 'alem', title: 'Além do Silêncio', artist: 'Aurora Vex' },
+    { id: 'fragmentos', title: 'Fragmentos do Amanhã', artist: 'Sideral' },
+    { id: 'mares', title: 'Marés Internas', artist: 'Oceânica' },
+    { id: 'ultima', title: 'Última Estação', artist: 'Subtérreo' },
+    { id: 'luz', title: 'Luz que Fica', artist: 'Minimalista' },
+    { id: 'sombras', title: 'Sombras de Cristal', artist: 'Nebulosa' },
+    { id: 'pulsar', title: 'Pulsar do Vazio', artist: 'Cassiopeia' },
+    { id: 'ecos', title: 'Ecos do Norte', artist: 'Arcano' },
+    { id: 'ressonancia', title: 'Ressonância Plena', artist: 'Vértex' }
+  ];
+  selectedSongIndex = 3;
+  private lastWheelTime = 0;
 
   ngOnInit(): void {
     this.playlistService.loadPlaylists().pipe(takeUntil(this.destroy$)).subscribe();
@@ -135,6 +152,77 @@ export class SearchPage implements OnInit, OnDestroy {
 
   trackByTrackId(_index: number, track: Track): string {
     return track.id;
+  }
+
+  trackBySongId(_index: number, song: { id: string }): string {
+    return song.id;
+  }
+
+  getOffsetForSong(songIdx: number): number {
+    const length = this.mockSongs.length;
+    let offset = songIdx - this.selectedSongIndex;
+    while (offset > length / 2) offset -= length;
+    while (offset <= -length / 2) offset += length;
+    return offset;
+  }
+
+  getItemTransform(offset: number): string {
+    const itemSpacing = 72;
+    const radius = 520;
+    const y = offset * itemSpacing;
+    const x = -radius + Math.sqrt(Math.max(0, radius * radius - y * y));
+    return `translate(${x}px, calc(-50% + ${y}px))`;
+  }
+
+  getItemOpacity(offset: number): number {
+    const d = Math.abs(offset);
+    if (d === 0) return 1;
+    if (d === 1) return 0.75;
+    if (d === 2) return 0.45;
+    if (d === 3) return 0.15;
+    return 0;
+  }
+
+  selectPrev(): void {
+    const length = this.mockSongs.length;
+    this.selectedSongIndex = (this.selectedSongIndex - 1 + length) % length;
+  }
+
+  selectNext(): void {
+    const length = this.mockSongs.length;
+    this.selectedSongIndex = (this.selectedSongIndex + 1) % length;
+  }
+
+  onWheel(event: WheelEvent): void {
+    event.preventDefault();
+    const now = Date.now();
+    if (now - this.lastWheelTime < 130) return;
+    this.lastWheelTime = now;
+
+    if (event.deltaY < 0) {
+      this.selectPrev();
+    } else if (event.deltaY > 0) {
+      this.selectNext();
+    }
+  }
+
+  onWheelMouseEnter(event: MouseEvent): void {
+    (event.currentTarget as HTMLElement).focus({ preventScroll: true });
+  }
+
+  @HostListener('window:keydown', ['$event'])
+  onWindowKeydown(event: KeyboardEvent): void {
+    if (this.loading || this.query) return;
+    const target = event.target as HTMLElement | null;
+    if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return;
+
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      this.selectPrev();
+    } else if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      this.selectNext();
+    }
   }
 
   private async promptCreatePlaylist(track: Track): Promise<void> {
