@@ -1,5 +1,6 @@
-import axios from 'axios';
-import { HttpError } from '../utils/http-error';
+import { env } from '../../config/env';
+import { HttpError } from '../../utils/http-error';
+import { spotifyHttp } from './spotify-http';
 
 interface SpotifyTokenResponse {
   access_token: string;
@@ -31,17 +32,12 @@ class TokenService {
   }
 
   private async refresh(): Promise<void> {
-    const clientId = process.env.SPOTIFY_CLIENT_ID;
-    const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
-
-    if (!clientId || !clientSecret) {
-      throw new HttpError('Credenciais do Spotify não configuradas.', 500);
-    }
-
-    const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+    const credentials = Buffer.from(
+      `${env.SPOTIFY_CLIENT_ID}:${env.SPOTIFY_CLIENT_SECRET}`
+    ).toString('base64');
     const body = new URLSearchParams({ grant_type: 'client_credentials' });
 
-    const { data } = await axios.post<SpotifyTokenResponse>(
+    const { data } = await spotifyHttp.post<SpotifyTokenResponse>(
       'https://accounts.spotify.com/api/token',
       body,
       {

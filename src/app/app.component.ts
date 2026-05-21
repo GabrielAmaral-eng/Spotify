@@ -1,5 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
-import { SessionService } from './core/services/session.service';
+import { Component } from '@angular/core';
 
 @Component({
   selector: 'app-root',
@@ -7,12 +6,4 @@ import { SessionService } from './core/services/session.service';
   styleUrls: ['app.component.scss'],
   standalone: false,
 })
-export class AppComponent implements OnInit {
-  private readonly sessionService = inject(SessionService);
-
-  ngOnInit(): void {
-    this.sessionService.initialize().catch((error: unknown) => {
-      console.error('Não foi possível iniciar a sessão anônima:', error);
-    });
-  }
-}
+export class AppComponent {}

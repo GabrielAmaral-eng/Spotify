@@ -1,0 +1,60 @@
+<ion-content class="ion-padding">
+  <section class="login-shell">
+    <div class="brand">
+      <span></span>
+      <strong>Melodix</strong>
+    </div>
+
+    <div class="login-card">
+      <p class="eyebrow">Sua biblioteca, agora com conta</p>
+      <h1>{{ title }}</h1>
+      <p class="supporting-copy">
+        Entre para salvar playlists e favoritos no seu banco Supabase.
+      </p>
+
+      <form (ngSubmit)="submit()">
+        <ion-item lines="none">
+          <ion-input
+            label="E-mail"
+            labelPlacement="stacked"
+            type="email"
+            inputmode="email"
+            autocomplete="email"
+            [(ngModel)]="email"
+            name="email"
+            required
+          ></ion-input>
+        </ion-item>
+
+        <ion-item lines="none">
+          <ion-input
+            label="Senha"
+            labelPlacement="stacked"
+            type="password"
+            autocomplete="current-password"
+            [(ngModel)]="password"
+            name="password"
+            minlength="6"
+            required
+          ></ion-input>
+        </ion-item>
+
+        <ion-note color="danger" *ngIf="errorMessage">{{ errorMessage }}</ion-note>
+        <ion-note color="success" *ngIf="successMessage">{{ successMessage }}</ion-note>
+
+        <ion-button expand="block" type="submit" [disabled]="loading">
+          <ion-spinner *ngIf="loading" name="crescent"></ion-spinner>
+          <span *ngIf="!loading">{{ submitLabel }}</span>
+        </ion-button>
+      </form>
+
+      <button class="mode-toggle" type="button" (click)="toggleMode()">
+        {{
+          mode === 'signin'
+            ? 'Ainda não tem conta? Criar agora'
+            : 'Já tem conta? Entrar'
+        }}
+      </button>
+    </div>
+  </section>
+</ion-content>
