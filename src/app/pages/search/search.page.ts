@@ -176,11 +176,7 @@ export class SearchPage implements OnInit, OnDestroy {
 
   getItemOpacity(offset: number): number {
     const d = Math.abs(offset);
-    if (d === 0) return 1;
-    if (d === 1) return 0.75;
-    if (d === 2) return 0.45;
-    if (d === 3) return 0.15;
-    return 0;
+    return Math.max(0, 1 - (d / 3.2) ** 2);
   }
 
   selectPrev(): void {
