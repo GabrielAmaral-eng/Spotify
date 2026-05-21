@@ -1,6 +1,6 @@
-import axios from 'axios';
-import type { Track } from '../types/track';
-import { HttpError } from '../utils/http-error';
+import type { Track } from '../../types/track';
+import { HttpError } from '../../utils/http-error';
+import { spotifyHttp } from './spotify-http';
 import { tokenService } from './token.service';
 
 interface SpotifyImage {
@@ -36,14 +36,14 @@ interface SpotifySearchResponse {
 class SpotifyService {
   async searchTracks(query: string): Promise<Track[]> {
     const token = await tokenService.getToken();
-    const { data } = await axios.get<SpotifySearchResponse>('https://api.spotify.com/v1/search', {
+    const { data } = await spotifyHttp.get<SpotifySearchResponse>('https://api.spotify.com/v1/search', {
       headers: {
         Authorization: `Bearer ${token}`
       },
       params: {
         q: query,
         type: 'track',
-        limit: 20
+        limit: 10
       }
     });
 
@@ -52,7 +52,7 @@ class SpotifyService {
 
   async getTrack(id: string): Promise<Track> {
     const token = await tokenService.getToken();
-    const { data } = await axios.get<SpotifyTrack>(`https://api.spotify.com/v1/tracks/${id}`, {
+    const { data } = await spotifyHttp.get<SpotifyTrack>(`https://api.spotify.com/v1/tracks/${id}`, {
       headers: {
         Authorization: `Bearer ${token}`
       }

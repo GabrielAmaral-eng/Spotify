@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import { z } from 'zod';
-import { spotifyService } from '../services/spotify.service';
+import { spotifyService } from './spotify.service';
 
 const searchQuerySchema = z.object({
   q: z.string().trim().min(1)

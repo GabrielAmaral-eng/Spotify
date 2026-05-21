@@ -1,14 +1,16 @@
 import { HTTP_INTERCEPTORS } from '@angular/common/http';
 import { NgModule, Optional, SkipSelf } from '@angular/core';
 import { ApiInterceptor } from './interceptors/api.interceptor';
+import { AuthService } from './services/auth.service';
 import { PlayerService } from './services/player.service';
 import { PlaylistService } from './services/playlist.service';
-import { SessionService } from './services/session.service';
 import { SpotifyService } from './services/spotify.service';
+import { SupabaseService } from './services/supabase.service';
 
 @NgModule({
   providers: [
-    SessionService,
+    SupabaseService,
+    AuthService,
     SpotifyService,
     PlayerService,
     PlaylistService,

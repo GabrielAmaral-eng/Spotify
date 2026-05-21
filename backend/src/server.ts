@@ -1,18 +1,14 @@
 import cors from 'cors';
-import dotenv from 'dotenv';
 import express from 'express';
+import { env } from './config/env';
 import { errorMiddleware } from './middlewares/error.middleware';
-import { playlistRouter } from './routes/playlist.routes';
-import { sessionRouter } from './routes/session.routes';
-import { spotifyRouter } from './routes/spotify.routes';
-import { userRouter } from './routes/user.routes';
-import { tokenService } from './services/token.service';
-
-dotenv.config();
+import { libraryRouter } from './modules/library/library.routes';
+import { spotifyRouter } from './modules/spotify/spotify.routes';
+import { tokenService } from './modules/spotify/token.service';
 
 const app = express();
-const port = Number(process.env.PORT ?? 3000);
-const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:8100';
+const port = env.PORT;
+const frontendUrl = env.FRONTEND_URL;
 
 app.use(
   cors({
@@ -26,10 +22,8 @@ app.get('/health', (_request, response) => {
   response.json({ ok: true, service: 'melodix-backend' });
 });
 
-app.use('/session', sessionRouter);
+app.use('/library', libraryRouter);
 app.use('/spotify', spotifyRouter);
-app.use('/playlists', playlistRouter);
-app.use('/', userRouter);
 app.use(errorMiddleware);
 
 app.listen(port, () => {

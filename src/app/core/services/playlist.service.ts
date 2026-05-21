@@ -43,14 +43,14 @@ export class PlaylistService {
   }
 
   loadPlaylists(): Observable<Playlist[]> {
-    return this.http.get<PlaylistsResponse>(`${this.apiUrl}/playlists`).pipe(
+    return this.http.get<PlaylistsResponse>(`${this.apiUrl}/library/playlists`).pipe(
       map((response) => response.playlists),
       tap((playlists) => this.playlistsSubject.next(playlists))
     );
   }
 
   getPlaylist(id: string): Observable<Playlist> {
-    return this.http.get<PlaylistResponse>(`${this.apiUrl}/playlists/${id}`).pipe(
+    return this.http.get<PlaylistResponse>(`${this.apiUrl}/library/playlists/${id}`).pipe(
       map((response) => response.playlist),
       tap((playlist) => this.upsertPlaylist(playlist))
     );
@@ -58,7 +58,7 @@ export class PlaylistService {
 
   createPlaylist(name: string, description?: string): Observable<Playlist> {
     return this.http
-      .post<PlaylistResponse>(`${this.apiUrl}/playlists`, { name, description })
+      .post<PlaylistResponse>(`${this.apiUrl}/library/playlists`, { name, description })
       .pipe(
         map((response) => response.playlist),
         tap((playlist) => this.playlistsSubject.next([playlist, ...this.playlistsSubject.value]))
@@ -67,7 +67,7 @@ export class PlaylistService {
 
   updatePlaylist(id: string, name: string, description?: string): Observable<Playlist> {
     return this.http
-      .put<PlaylistResponse>(`${this.apiUrl}/playlists/${id}`, { name, description })
+      .put<PlaylistResponse>(`${this.apiUrl}/library/playlists/${id}`, { name, description })
       .pipe(
         map((response) => response.playlist),
         tap((playlist) => this.upsertPlaylist(playlist))
@@ -75,7 +75,7 @@ export class PlaylistService {
   }
 
   deletePlaylist(id: string): Observable<void> {
-    return this.http.delete<void>(`${this.apiUrl}/playlists/${id}`).pipe(
+    return this.http.delete<void>(`${this.apiUrl}/library/playlists/${id}`).pipe(
       tap(() => {
         const playlists = this.playlistsSubject.value.filter((playlist) => playlist.id !== id);
         this.playlistsSubject.next(playlists);
@@ -85,7 +85,7 @@ export class PlaylistService {
 
   addTrackToPlaylist(playlistId: string, track: Track): Observable<Playlist> {
     return this.http
-      .post<PlaylistResponse>(`${this.apiUrl}/playlists/${playlistId}/tracks`, { track })
+      .post<PlaylistResponse>(`${this.apiUrl}/library/playlists/${playlistId}/tracks`, { track })
       .pipe(
         map((response) => response.playlist),
         tap((playlist) => this.upsertPlaylist(playlist))
@@ -93,33 +93,35 @@ export class PlaylistService {
   }
 
   removeTrackFromPlaylist(playlistId: string, trackId: string): Observable<void> {
-    return this.http.delete<void>(`${this.apiUrl}/playlists/${playlistId}/tracks/${trackId}`).pipe(
-      tap(() => {
-        const playlists = this.playlistsSubject.value.map((playlist) => {
-          if (playlist.id !== playlistId) {
-            return playlist;
-          }
+    return this.http
+      .delete<void>(`${this.apiUrl}/library/playlists/${playlistId}/tracks/${trackId}`)
+      .pipe(
+        tap(() => {
+          const playlists = this.playlistsSubject.value.map((playlist) => {
+            if (playlist.id !== playlistId) {
+              return playlist;
+            }
 
-          return {
-            ...playlist,
-            tracks: playlist.tracks.filter((track) => track.id !== trackId)
-          };
-        });
+            return {
+              ...playlist,
+              tracks: playlist.tracks.filter((track) => track.id !== trackId)
+            };
+          });
 
-        this.playlistsSubject.next(playlists);
-      })
-    );
+          this.playlistsSubject.next(playlists);
+        })
+      );
   }
 
   loadFavorites(): Observable<Track[]> {
-    return this.http.get<FavoritesResponse>(`${this.apiUrl}/favorites`).pipe(
+    return this.http.get<FavoritesResponse>(`${this.apiUrl}/library/favorites`).pipe(
       map((response) => response.favorites),
       tap((favorites) => this.favoritesSubject.next(favorites))
     );
   }
 
   favoriteTrack(track: Track): Observable<Track> {
-    return this.http.post<FavoriteResponse>(`${this.apiUrl}/favorites`, track).pipe(
+    return this.http.post<FavoriteResponse>(`${this.apiUrl}/library/favorites`, track).pipe(
       map((response) => response.favorite),
       tap((favorite) => {
         const withoutTrack = this.favoritesSubject.value.filter((item) => item.id !== favorite.id);
@@ -129,7 +131,7 @@ export class PlaylistService {
   }
 
   unfavoriteTrack(trackId: string): Observable<void> {
-    return this.http.delete<void>(`${this.apiUrl}/favorites/${trackId}`).pipe(
+    return this.http.delete<void>(`${this.apiUrl}/library/favorites/${trackId}`).pipe(
       tap(() => {
         const favorites = this.favoritesSubject.value.filter((track) => track.id !== trackId);
         this.favoritesSubject.next(favorites);
