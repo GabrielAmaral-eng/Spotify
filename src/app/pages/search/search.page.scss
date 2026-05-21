@@ -145,9 +145,37 @@ p {
   top: calc(50% - 480px);
   width: 960px;
   height: 960px;
-  border: 2px solid rgba(255, 255, 255, 0.28);
   border-radius: 50%;
   pointer-events: none;
+
+  // Técnica: pseudo-elemento com padding + mask-composite cria o anel gradiente
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    padding: 2px; // espessura da borda
+
+    // Gradiente vertical: invisível → branco → invisível
+    background: linear-gradient(
+      to bottom,
+      rgba(255, 255, 255, 0)   22%,
+      rgba(255, 255, 255, 1)  50%,
+      rgba(255, 255, 255, 0) 78%
+    );
+
+    // Recorta apenas a área de padding (2px), removendo o interior
+    -webkit-mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+
+    // Glow sutil
+    filter:
+      drop-shadow(0 0 5px  rgba(255, 255, 255, 0.45))
+      drop-shadow(0 0 16px rgba(255, 255, 255, 0.2));
+  }
 }
 
 .wheel-item {
