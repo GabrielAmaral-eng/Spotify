@@ -5,6 +5,7 @@ import { AuthService } from './services/auth.service';
 import { PlayerService } from './services/player.service';
 import { PlaylistService } from './services/playlist.service';
 import { SpotifyService } from './services/spotify.service';
+import { SpotifyWebPlaybackService } from './services/spotify-web-playback.service';
 import { SupabaseService } from './services/supabase.service';
 
 @NgModule({
@@ -12,6 +13,7 @@ import { SupabaseService } from './services/supabase.service';
     SupabaseService,
     AuthService,
     SpotifyService,
+    SpotifyWebPlaybackService,
     PlayerService,
     PlaylistService,
     {
