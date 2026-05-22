@@ -1,6 +1,4 @@
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
-import { IonicModule } from '@ionic/angular';
-
 import { PlaylistsComponent } from './playlists.component';
 
 describe('PlaylistsComponent', () => {
@@ -9,8 +7,7 @@ describe('PlaylistsComponent', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      declarations: [ PlaylistsComponent ],
-      imports: [IonicModule.forRoot()]
+      imports: [PlaylistsComponent]
     }).compileComponents();
 
     fixture = TestBed.createComponent(PlaylistsComponent);

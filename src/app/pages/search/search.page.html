@@ -17,11 +17,19 @@
       (ionInput)="onSearch($event)"
     ></ion-searchbar>
 
-    <!-- Library Button -->
-    <ion-button class="library-btn" routerLink="/library" aria-label="Abrir biblioteca">
+    <!-- Library Button — toggle do painel de playlists -->
+    <ion-button
+      class="library-btn"
+      [class.active]="showPlaylists"
+      aria-label="Abrir biblioteca"
+      (click)="togglePlaylists()"
+    >
       <img src="assets/icon/Library.svg" alt="Library" class="library-icon" />
     </ion-button>
   </div>
+
+  <!-- Painel de Playlists -->
+  <app-playlists [open]="showPlaylists"></app-playlists>
 
   <ion-note color="danger" *ngIf="errorMessage">{{ errorMessage }}</ion-note>
 

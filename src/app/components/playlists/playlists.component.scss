@@ -16,14 +16,15 @@
   z-index: 999;
   overflow: hidden;
 
-  // Estado inicial: fora da tela à direita, invisível
+  // Estado fechado: deslocado para a direita e invisível
   opacity: 0;
   transform: translateX(40px);
   pointer-events: none;
   transition:
-    opacity 0.32s cubic-bezier(0.4, 0, 0.2, 1),
-    transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+    opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 
+  // Estado aberto: pull left → posição natural + fade in
   &.open {
     opacity: 1;
     transform: translateX(0);
@@ -75,10 +76,11 @@
   }
 }
 
-.playlist-emoji {
-  font-size: 20px;
+.playlist-icon {
+  width: 20px;
+  height: 20px;
   flex-shrink: 0;
-  line-height: 1;
+  object-fit: contain;
 }
 
 .playlist-info {

@@ -1,28 +1,28 @@
-import { Component, Input, OnInit } from '@angular/core';
+import { Component, Input } from '@angular/core';
+import { CommonModule } from '@angular/common';
 
 export interface MockPlaylist {
   id: string;
   name: string;
   trackCount: number;
-  emoji: string;
 }
 
 @Component({
   selector: 'app-playlists',
   templateUrl: './playlists.component.html',
   styleUrls: ['./playlists.component.scss'],
+  standalone: true,
+  imports: [CommonModule],
 })
-export class PlaylistsComponent implements OnInit {
+export class PlaylistsComponent {
   @Input() open = false;
 
   readonly playlists: MockPlaylist[] = [
-    { id: '1', name: 'Favoritas',        trackCount: 24, emoji: '❤️' },
-    { id: '2', name: 'Lo-fi Noturno',    trackCount: 12, emoji: '🌙' },
-    { id: '3', name: 'Energia Máxima',   trackCount: 18, emoji: '⚡' },
-    { id: '4', name: 'Tarde de Chuva',   trackCount: 9,  emoji: '🌧️' },
-    { id: '5', name: 'Workout',          trackCount: 31, emoji: '🏋️' },
-    { id: '6', name: 'Viagem',           trackCount: 15, emoji: '✈️' },
+    { id: '1', name: 'Favoritas',      trackCount: 24 },
+    { id: '2', name: 'Lo-fi Noturno',  trackCount: 12 },
+    { id: '3', name: 'Energia Máxima', trackCount: 18 },
+    { id: '4', name: 'Tarde de Chuva', trackCount:  9 },
+    { id: '5', name: 'Workout',        trackCount: 31 },
+    { id: '6', name: 'Viagem',         trackCount: 15 },
   ];
-
-  ngOnInit(): void {}
 }
