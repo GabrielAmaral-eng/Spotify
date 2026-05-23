@@ -1,0 +1,15 @@
+<div class="playlists-panel" [class.open]="open">
+  <div class="panel-header">
+    <span class="panel-title">Playlists</span>
+  </div>
+  <div class="panel-divider"></div>
+  <div class="panel-list">
+    <div class="playlist-item" *ngFor="let pl of playlists">
+      <img src="assets/icon/Folder.svg" alt="Playlist folder" class="playlist-icon">
+      <div class="playlist-info">
+        <span class="playlist-name">{{ pl.name }}</span>
+        <span class="playlist-count">{{ pl.trackCount }} músicas</span>
+      </div>
+    </div>
+  </div>
+</div>

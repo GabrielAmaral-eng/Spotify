@@ -38,19 +38,22 @@ export class SearchPage implements OnInit, OnDestroy {
   loading = false;
   errorMessage = '';
 
+  /** Controla a visibilidade do painel de playlists */
+  showPlaylists = false;
+
   readonly mockSongs: ReadonlyArray<{ id: string; title: string; artist: string }> = [
-    { id: 'eclipse', title: 'Eclipse dos Dias', artist: 'Tessália' },
-    { id: 'horizonte', title: 'Horizonte de Neon', artist: 'Vértice' },
-    { id: 'coracao', title: 'Coração de Fumaça', artist: 'Lunário' },
-    { id: 'alem', title: 'Além do Silêncio', artist: 'Aurora Vex' },
-    { id: 'fragmentos', title: 'Fragmentos do Amanhã', artist: 'Sideral' },
-    { id: 'mares', title: 'Marés Internas', artist: 'Oceânica' },
-    { id: 'ultima', title: 'Última Estação', artist: 'Subtérreo' },
-    { id: 'luz', title: 'Luz que Fica', artist: 'Minimalista' },
-    { id: 'sombras', title: 'Sombras de Cristal', artist: 'Nebulosa' },
-    { id: 'pulsar', title: 'Pulsar do Vazio', artist: 'Cassiopeia' },
-    { id: 'ecos', title: 'Ecos do Norte', artist: 'Arcano' },
-    { id: 'ressonancia', title: 'Ressonância Plena', artist: 'Vértex' }
+    { id: 'eclipse',     title: 'Eclipse dos Dias',     artist: 'Tessália'    },
+    { id: 'horizonte',   title: 'Horizonte de Neon',    artist: 'Vértice'     },
+    { id: 'coracao',     title: 'Coração de Fumaça',    artist: 'Lunário'     },
+    { id: 'alem',        title: 'Além do Silêncio',     artist: 'Aurora Vex'  },
+    { id: 'fragmentos',  title: 'Fragmentos do Amanhã', artist: 'Sideral'     },
+    { id: 'mares',       title: 'Marés Internas',       artist: 'Oceânica'    },
+    { id: 'ultima',      title: 'Última Estação',       artist: 'Subtérreo'   },
+    { id: 'luz',         title: 'Luz que Fica',         artist: 'Minimalista' },
+    { id: 'sombras',     title: 'Sombras de Cristal',   artist: 'Nebulosa'    },
+    { id: 'pulsar',      title: 'Pulsar do Vazio',      artist: 'Cassiopeia'  },
+    { id: 'ecos',        title: 'Ecos do Norte',        artist: 'Arcano'      },
+    { id: 'ressonancia', title: 'Ressonância Plena',    artist: 'Vértex'      },
   ];
   selectedSongIndex = 3;
   private lastWheelTime = 0;
@@ -93,6 +96,11 @@ export class SearchPage implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  /** Abre ou fecha o painel de playlists */
+  togglePlaylists(): void {
+    this.showPlaylists = !this.showPlaylists;
   }
 
   onSearch(event: Event): void {
@@ -176,11 +184,7 @@ export class SearchPage implements OnInit, OnDestroy {
 
   getItemOpacity(offset: number): number {
     const d = Math.abs(offset);
-    if (d === 0) return 1;
-    if (d === 1) return 0.75;
-    if (d === 2) return 0.45;
-    if (d === 3) return 0.15;
-    return 0;
+    return Math.max(0, 1 - (d / 3.2) ** 2);
   }
 
   selectPrev(): void {
@@ -229,30 +233,16 @@ export class SearchPage implements OnInit, OnDestroy {
     const alert = await this.alertController.create({
       header: 'Nova playlist',
       inputs: [
-        {
-          name: 'name',
-          placeholder: 'Nome da playlist',
-          type: 'text'
-        },
-        {
-          name: 'description',
-          placeholder: 'Descrição opcional',
-          type: 'textarea'
-        }
+        { name: 'name',        placeholder: 'Nome da playlist',   type: 'text'     },
+        { name: 'description', placeholder: 'Descrição opcional', type: 'textarea' }
       ],
       buttons: [
-        {
-          text: 'Cancelar',
-          role: 'cancel'
-        },
+        { text: 'Cancelar', role: 'cancel' },
         {
           text: 'Criar',
           handler: (data: { name?: string; description?: string }) => {
             const name = data.name?.trim();
-
-            if (!name) {
-              return false;
-            }
+            if (!name) return false;
 
             this.playlistService.createPlaylist(name, data.description?.trim()).subscribe({
               next: (playlist) => {
@@ -274,10 +264,8 @@ export class SearchPage implements OnInit, OnDestroy {
   }
 
   private presentToast(message: string): void {
-    this.toastController.create({
-      message,
-      duration: 1800,
-      position: 'bottom'
-    }).then((toast) => toast.present());
+    this.toastController
+      .create({ message, duration: 1800, position: 'bottom' })
+      .then((toast) => toast.present());
   }
 }
