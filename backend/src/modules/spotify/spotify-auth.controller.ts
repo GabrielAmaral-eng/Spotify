@@ -10,6 +10,11 @@ const callbackQuerySchema = z.object({
   state: z.string().min(1)
 });
 
+const playBodySchema = z.object({
+  deviceId: z.string().trim().min(1),
+  trackId: z.string().trim().min(1)
+});
+
 export const createSpotifyAuthorizationUrl = async (
   request: Request,
   response: Response
@@ -77,5 +82,19 @@ export const disconnectSpotify = async (
   }
 
   await spotifyAuthService.disconnect(request.userId);
+  response.status(204).send();
+};
+
+export const playSpotifyTrack = async (
+  request: Request,
+  response: Response
+): Promise<void> => {
+  if (!request.userId) {
+    throw new HttpError('Usuario nao autenticado.', 401);
+  }
+
+  const { deviceId, trackId } = playBodySchema.parse(request.body);
+  await spotifyAuthService.playTrack(request.userId, deviceId, trackId);
+
   response.status(204).send();
 };

@@ -19,10 +19,6 @@ export class TrackItemComponent {
   @Output() removeTrack = new EventEmitter<Track>();
 
   onPlay(): void {
-    if (!this.track.previewUrl) {
-      return;
-    }
-
     this.playTrack.emit(this.track);
   }
 

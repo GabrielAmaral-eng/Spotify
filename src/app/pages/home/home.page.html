@@ -15,44 +15,6 @@
     <p>Playlists e favoritos agora ficam salvos na sua conta.</p>
   </section>
 
-  <section class="spotify-card">
-    <div>
-      <p class="eyebrow">Spotify</p>
-      <h2 *ngIf="spotifyConnection.connected; else disconnectedTitle">
-        {{ spotifyConnection.displayName || 'Conta conectada' }}
-      </h2>
-      <ng-template #disconnectedTitle>
-        <h2>Conecte sua conta</h2>
-      </ng-template>
-      <p *ngIf="spotifyConnection.connected; else disconnectedCopy">
-        Pronto para liberar o player completo quando ativarmos a reproducao via Spotify.
-      </p>
-      <ng-template #disconnectedCopy>
-        <p>Autorize o app para tocar musicas completas com sua conta Spotify.</p>
-      </ng-template>
-    </div>
-
-    <ion-button
-      *ngIf="!spotifyConnection.connected"
-      type="button"
-      [disabled]="spotifyLoading || spotifyActionLoading"
-      (click)="connectSpotify()"
-    >
-      Conectar Spotify
-    </ion-button>
-
-    <ion-button
-      *ngIf="spotifyConnection.connected"
-      type="button"
-      fill="outline"
-      color="medium"
-      [disabled]="spotifyActionLoading"
-      (click)="disconnectSpotify()"
-    >
-      Desconectar
-    </ion-button>
-  </section>
-
   <div class="quick-actions">
     <ion-button expand="block" routerLink="/search">
       <ion-icon name="search-outline" slot="start" aria-hidden="true"></ion-icon>

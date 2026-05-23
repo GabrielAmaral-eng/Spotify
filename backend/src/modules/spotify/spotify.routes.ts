@@ -7,7 +7,8 @@ import {
   disconnectSpotify,
   getSpotifyAccessToken,
   getSpotifyConnectionStatus,
-  handleSpotifyCallback
+  handleSpotifyCallback,
+  playSpotifyTrack
 } from './spotify-auth.controller';
 
 export const spotifyRouter = Router();
@@ -19,3 +20,4 @@ spotifyRouter.get('/auth/login', authMiddleware, asyncHandler(createSpotifyAutho
 spotifyRouter.get('/auth/status', authMiddleware, asyncHandler(getSpotifyConnectionStatus));
 spotifyRouter.get('/auth/token', authMiddleware, asyncHandler(getSpotifyAccessToken));
 spotifyRouter.delete('/auth/connection', authMiddleware, asyncHandler(disconnectSpotify));
+spotifyRouter.post('/player/play', authMiddleware, asyncHandler(playSpotifyTrack));

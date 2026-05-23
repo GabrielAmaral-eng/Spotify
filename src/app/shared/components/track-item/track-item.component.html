@@ -1,14 +1,9 @@
-<ion-item
-  class="track-item"
-  [class.track-item--locked]="!track.previewUrl"
-  lines="none"
->
+<ion-item class="track-item" lines="none">
   <button
     class="track-item__main"
     type="button"
-    [disabled]="!track.previewUrl"
     (click)="onPlay()"
-    [attr.aria-label]="track.previewUrl ? 'Reproduzir preview' : 'Preview indisponível'"
+    aria-label="Reproduzir musica"
   >
     <ion-thumbnail>
       <img *ngIf="track.thumbnail; else noCover" [src]="track.thumbnail" [alt]="track.album" />
@@ -26,13 +21,6 @@
     </ion-label>
   </button>
 
-  <ion-icon
-    *ngIf="!track.previewUrl"
-    class="track-item__lock"
-    name="lock-closed-outline"
-    aria-label="Preview indisponível"
-  ></ion-icon>
-
   <div class="track-item__actions" slot="end" *ngIf="showActions">
     <ion-button
       fill="clear"
@@ -47,7 +35,7 @@
       fill="clear"
       size="small"
       type="button"
-      aria-label="Adicionar à playlist"
+      aria-label="Adicionar a playlist"
       (click)="onAdd($event)"
     >
       <ion-icon name="add-circle-outline" aria-hidden="true"></ion-icon>

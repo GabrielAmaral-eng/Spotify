@@ -63,4 +63,11 @@ export class SpotifyService {
   disconnect(): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/spotify/auth/connection`);
   }
+
+  playTrack(trackId: string, deviceId: string): Observable<void> {
+    return this.http.post<void>(`${this.apiUrl}/spotify/player/play`, {
+      trackId,
+      deviceId
+    });
+  }
 }

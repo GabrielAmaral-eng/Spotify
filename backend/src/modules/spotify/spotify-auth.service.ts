@@ -177,6 +177,26 @@ class SpotifyAuthService {
     };
   }
 
+  async playTrack(userId: string, deviceId: string, trackId: string): Promise<void> {
+    const { accessToken } = await this.getAccessToken(userId);
+
+    await spotifyHttp.put(
+      'https://api.spotify.com/v1/me/player/play',
+      {
+        uris: [`spotify:track:${trackId}`]
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        params: {
+          device_id: deviceId
+        }
+      }
+    );
+  }
+
   private async getConnectionRow(userId: string): Promise<SpotifyConnectionRow | null> {
     const { data, error } = await supabaseAdminClient
       .from('spotify_connections')
