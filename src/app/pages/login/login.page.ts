@@ -23,7 +23,7 @@ export class LoginPage implements OnInit {
 
   async ngOnInit(): Promise<void> {
     if (await this.authService.isAuthenticated()) {
-      await this.router.navigateByUrl('/home');
+      await this.router.navigateByUrl('/search');
     }
   }
 
@@ -62,7 +62,7 @@ export class LoginPage implements OnInit {
           return;
         }
 
-        await this.router.navigateByUrl('/home');
+        await this.router.navigateByUrl('/search');
         return;
       }
 
@@ -74,7 +74,7 @@ export class LoginPage implements OnInit {
       }
 
       if (result.session) {
-        await this.router.navigateByUrl('/home');
+        await this.router.navigateByUrl('/search');
         return;
       }
 
