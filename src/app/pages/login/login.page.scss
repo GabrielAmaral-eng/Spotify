@@ -1,10 +1,16 @@
+@font-face {
+  font-family: 'Dune Rise';
+  src: url('/assets/Fonts/Dune_Rise.ttf') format('truetype');
+}
+
 .login-shell {
   display: grid;
-  gap: 22px;
+  gap: 28px;
   min-height: 100%;
   place-content: center;
 }
 
+/* Marca: logo + texto Melodix, igual à página de busca */
 .brand {
   align-items: center;
   display: flex;
@@ -12,37 +18,41 @@
   justify-content: center;
 }
 
-.brand span {
-  background: linear-gradient(135deg, #1db954, #00a6a6);
-  border-radius: 999px;
-  display: inline-block;
-  height: 18px;
-  width: 18px;
+.brand-icon {
+  width: 42px;
+  height: 42px;
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.8));
 }
 
-.brand strong {
-  font-size: 1.1rem;
-  letter-spacing: 0.02em;
+.brand-text {
+  font-family: 'Dune Rise', sans-serif;
+  font-size: 30px;
+  font-weight: bold;
+  color: #ffffff;
+  letter-spacing: 1px;
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.8));
 }
 
 .login-card {
   backdrop-filter: blur(18px);
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 18px;
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.28);
   display: grid;
   gap: 14px;
-  padding: 22px;
+  padding: 26px;
+  width: min(92vw, 380px);
 }
 
 .eyebrow {
-  color: var(--ion-color-primary);
+  color: #ffffff;
   font-size: 0.78rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   margin: 0;
   text-transform: uppercase;
+  opacity: 0.7;
 }
 
 h1,
@@ -51,37 +61,85 @@ h1,
 }
 
 h1 {
-  font-size: 1.8rem;
+  font-family: 'Dune Rise', sans-serif;
+  font-size: 1.7rem;
+  color: #ffffff;
+  letter-spacing: 0.5px;
+  filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.5));
 }
 
 .supporting-copy {
-  color: var(--ion-color-medium);
+  color: rgba(255, 255, 255, 0.65);
   line-height: 1.45;
 }
 
 form {
   display: grid;
-  gap: 12px;
+  gap: 14px;
+  margin-top: 4px;
 }
 
-ion-item {
-  --background: rgba(255, 255, 255, 0.06);
-  --border-radius: 12px;
+/* Campos com a mesma linguagem da search-bar: transparente, borda branca, glow */
+.field {
+  --background: transparent;
+  --border-radius: 14px;
+  --color: #ffffff;
+  --highlight-color-focused: #ffffff;
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  border-radius: 14px;
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.35));
+  transition: filter 0.2s ease, transform 0.2s ease;
+
+  &:hover,
+  &:focus-within {
+    filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.8));
+    transform: scale(1.01);
+  }
+
+  ion-input {
+    --color: #ffffff;
+    --placeholder-color: rgba(255, 255, 255, 0.6);
+  }
 }
 
 ion-note {
   display: block;
 }
 
-ion-button {
-  margin-top: 4px;
+/* Botão com contorno branco luminoso */
+.submit-btn {
+  margin-top: 6px;
+  --background: transparent;
+  --background-hover: rgba(255, 255, 255, 0.08);
+  --background-activated: rgba(255, 255, 255, 0.12);
+  --border-radius: 999px;
+  --border-width: 2px;
+  --border-style: solid;
+  --border-color: #ffffff;
+  --color: #ffffff;
+  --box-shadow: none;
+  font-family: 'Dune Rise', sans-serif;
+  letter-spacing: 1px;
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.5));
+  transition: filter 0.2s ease, transform 0.2s ease;
+
+  &:hover {
+    filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.8));
+    transform: scale(1.02);
+  }
 }
 
 .mode-toggle {
   background: transparent;
   border: 0;
-  color: var(--ion-color-light);
+  color: rgba(255, 255, 255, 0.75);
   font-weight: 600;
   justify-self: center;
   padding: 4px;
+  transition: color 0.2s ease, filter 0.2s ease;
+
+  &:hover {
+    color: #ffffff;
+    filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.6));
+  }
 }
