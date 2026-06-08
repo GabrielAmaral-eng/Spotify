@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { BehaviorSubject, Observable } from 'rxjs';
+import { BehaviorSubject, Observable, Subject } from 'rxjs';
 import { Track } from '../../shared/models/track.model';
 import { SpotifyWebPlaybackService } from './spotify-web-playback.service';
 
@@ -10,11 +10,13 @@ export class PlayerService {
   private readonly currentTrackSubject = new BehaviorSubject<Track | null>(null);
   private readonly isPlayingSubject = new BehaviorSubject<boolean>(false);
   private readonly progressSubject = new BehaviorSubject<number>(0);
+  private readonly playbackMessageSubject = new Subject<string>();
   private usingSpotifyPlayback = false;
 
   readonly currentTrack$: Observable<Track | null> = this.currentTrackSubject.asObservable();
   readonly isPlaying$: Observable<boolean> = this.isPlayingSubject.asObservable();
   readonly progress$: Observable<number> = this.progressSubject.asObservable();
+  readonly playbackMessage$: Observable<string> = this.playbackMessageSubject.asObservable();
 
   constructor() {
     this.audio.addEventListener('timeupdate', () => this.updateProgress());
@@ -45,15 +47,20 @@ export class PlayerService {
     }
 
     this.playWithConnectedAccount(track).catch((error: unknown) => {
-      console.error('Falha ao reproduzir musica completa:', error);
-      this.playPreview(track);
+      console.warn('Playback completo indisponivel; tentando preview:', error);
+      this.playPreview(track, this.getFullPlaybackFailureMessage(error));
     });
   }
 
-  private playPreview(track: Track): void {
+  private playPreview(track: Track, fullPlaybackFailureMessage?: string): void {
     if (!track.previewUrl) {
       this.usingSpotifyPlayback = false;
+      this.clearPreview();
       this.isPlayingSubject.next(false);
+      this.progressSubject.next(0);
+      this.playbackMessageSubject.next(
+        fullPlaybackFailureMessage ?? 'Nao foi possivel reproduzir esta musica.'
+      );
       return;
     }
 
@@ -61,10 +68,17 @@ export class PlayerService {
     this.audio.src = track.previewUrl;
 
     this.audio.play()
-      .then(() => this.isPlayingSubject.next(true))
+      .then(() => {
+        this.isPlayingSubject.next(true);
+
+        if (fullPlaybackFailureMessage) {
+          this.playbackMessageSubject.next('Player Spotify indisponivel; tocando preview da musica.');
+        }
+      })
       .catch((error: unknown) => {
         console.error('Falha ao reproduzir preview:', error);
         this.isPlayingSubject.next(false);
+        this.playbackMessageSubject.next('Nao foi possivel reproduzir o preview desta musica.');
       });
   }
 
@@ -144,5 +158,20 @@ export class PlayerService {
     await this.spotifyPlayback.play(track.id);
     this.usingSpotifyPlayback = true;
     this.isPlayingSubject.next(true);
+  }
+
+  private clearPreview(): void {
+    this.audio.removeAttribute('src');
+    this.audio.load();
+  }
+
+  private getFullPlaybackFailureMessage(error: unknown): string {
+    const message = error instanceof Error ? error.message : '';
+
+    if (message.includes('Conta Spotify nao conectada')) {
+      return 'Conecte sua conta Spotify para tocar a musica completa.';
+    }
+
+    return 'Nao foi possivel iniciar o player Spotify. Para tocar a musica completa, use uma conta Spotify Premium e permita o player no navegador.';
   }
 }

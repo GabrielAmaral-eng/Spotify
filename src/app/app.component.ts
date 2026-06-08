@@ -1,6 +1,7 @@
-import { Component, inject } from '@angular/core';
-import { NavigationEnd, Router } from '@angular/router';
-import { filter, map, startWith } from 'rxjs';
+import { Component, OnDestroy, inject } from '@angular/core';
+import { ToastController } from '@ionic/angular';
+import { Subject, takeUntil } from 'rxjs';
+import { PlayerService } from './core/services/player.service';
 
 @Component({
   selector: 'app-root',
@@ -8,12 +9,31 @@ import { filter, map, startWith } from 'rxjs';
   styleUrls: ['app.component.scss'],
   standalone: false,
 })
-export class AppComponent {
-  private readonly router = inject(Router);
+export class AppComponent implements OnDestroy {
+  private readonly playerService = inject(PlayerService);
+  private readonly toastController = inject(ToastController);
+  private readonly destroy$ = new Subject<void>();
 
-  readonly showMiniPlayer$ = this.router.events.pipe(
-    filter((event): event is NavigationEnd => event instanceof NavigationEnd),
-    startWith(null),
-    map(() => !this.router.url.startsWith('/player'))
-  );
+  constructor() {
+    this.playerService.playbackMessage$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((message) => {
+        this.presentPlaybackMessage(message).catch(() => undefined);
+      });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  private async presentPlaybackMessage(message: string): Promise<void> {
+    const toast = await this.toastController.create({
+      message,
+      duration: 2600,
+      position: 'bottom'
+    });
+
+    await toast.present();
+  }
 }
