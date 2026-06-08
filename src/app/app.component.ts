@@ -1,6 +1,6 @@
 import { Component, OnDestroy, inject } from '@angular/core';
 import { ToastController } from '@ionic/angular';
-import { Subject, takeUntil } from 'rxjs';
+import { Observable, Subject, map, takeUntil } from 'rxjs';
 import { PlayerService } from './core/services/player.service';
 
 @Component({
@@ -13,6 +13,10 @@ export class AppComponent implements OnDestroy {
   private readonly playerService = inject(PlayerService);
   private readonly toastController = inject(ToastController);
   private readonly destroy$ = new Subject<void>();
+
+  readonly showMiniPlayer$: Observable<boolean> = this.playerService.currentTrack$.pipe(
+    map((track) => track !== null)
+  );
 
   constructor() {
     this.playerService.playbackMessage$
