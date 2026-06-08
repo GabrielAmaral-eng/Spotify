@@ -36,6 +36,11 @@ export class PlayerPage implements OnInit {
     this.playerService.seekToPercent(progress);
   }
 
+  progressToSeconds(progress: number | null | undefined, duration: number | null | undefined): number {
+    const normalizedProgress = Math.min(100, Math.max(0, progress ?? 0));
+    return ((duration ?? 0) * normalizedProgress) / 100;
+  }
+
   toggleFavorite(track: Track): void {
     this.playlistService.toggleFavorite(track).subscribe({
       next: () => undefined,
