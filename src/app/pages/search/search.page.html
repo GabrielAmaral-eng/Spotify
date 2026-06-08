@@ -59,6 +59,12 @@
         </div>
       </div>
     </div>
+
+    <!-- Visualizador de áudio — só aparece quando há música tocando -->
+    <app-audio-visualizer
+      *ngIf="isPlaying$ | async"
+      class="search-visualizer"
+    ></app-audio-visualizer>
   </div>
 
   <ion-list *ngIf="loading">

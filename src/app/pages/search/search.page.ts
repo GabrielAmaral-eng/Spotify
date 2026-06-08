@@ -33,6 +33,7 @@ export class SearchPage implements OnInit, OnDestroy {
   private readonly destroy$ = new Subject<void>();
 
   readonly favoriteIds$ = this.playlistService.favoriteIds$;
+  readonly isPlaying$ = this.playerService.isPlaying$;
   results: Track[] = [];
   query = '';
   loading = false;

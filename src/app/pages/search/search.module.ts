@@ -6,6 +6,7 @@ import { SharedModule } from '../../shared/shared.module';
 import { SearchPageRoutingModule } from './search-routing.module';
 import { SearchPage } from './search.page';
 import { PlaylistsComponent } from '../../components/playlists/playlists.component';
+import { AudioVisualizerComponent } from '../../components/audio-visualizer/audio-visualizer.component';
 
 @NgModule({
   declarations: [SearchPage],
@@ -16,6 +17,7 @@ import { PlaylistsComponent } from '../../components/playlists/playlists.compone
     SharedModule,
     SearchPageRoutingModule,
     PlaylistsComponent,
+    AudioVisualizerComponent,
   ]
 })
 export class SearchPageModule {}
