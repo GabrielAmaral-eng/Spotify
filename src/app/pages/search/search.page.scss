@@ -129,6 +129,10 @@ p {
 }
 
 .song-wheel {
+  --wheel-arc-size: 960px;
+  --wheel-arc-radius: 480px;
+  --wheel-item-left: 200px;
+
   position: relative;
   width: 55%;
   max-width: 720px;
@@ -137,14 +141,16 @@ p {
   outline: none;
   flex-shrink: 0;
   margin-left: -100px;
+  touch-action: none;
+  user-select: none;
 }
 
 .wheel-arc-circle {
   position: absolute;
-  left: -760px;
-  top: calc(50% - 480px);
-  width: 960px;
-  height: 960px;
+  left: calc(var(--wheel-item-left) - var(--wheel-arc-size));
+  top: calc(50% - var(--wheel-arc-radius));
+  width: var(--wheel-arc-size);
+  height: var(--wheel-arc-size);
   border-radius: 50%;
   pointer-events: none;
 
@@ -180,11 +186,12 @@ p {
 
 .wheel-item {
   position: absolute;
-  left: 200px;
+  left: var(--wheel-item-left);
   top: 50%;
   display: flex;
   align-items: center;
   gap: 18px;
+  max-width: calc(100vw - var(--wheel-item-left) - 32px);
   color: #ffffff;
   transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1),
               opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -231,6 +238,8 @@ p {
 .wheel-text {
   display: flex;
   flex-direction: column;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .wheel-title {
@@ -238,6 +247,8 @@ p {
   font-weight: 500;
   color: #ffffff;
   line-height: 1.15;
+  overflow: hidden;
+  text-overflow: ellipsis;
   transition: font-size 0.3s ease;
 }
 
@@ -245,9 +256,142 @@ p {
   font-size: 12px;
   color: rgba(255, 255, 255, 0.65);
   margin-top: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 ion-list {
   background: transparent;
   margin-top: 24px;
+}
+
+@media (min-width: 641px) {
+  .search-top-bar {
+    padding: 0 28px;
+  }
+
+  .search-bar {
+    max-width: min(48%, 820px);
+  }
+
+  .idle-area {
+    padding-left: clamp(20px, 3.5vw, 72px);
+  }
+
+  .song-wheel {
+    --wheel-item-left: 180px;
+
+    margin-left: 0;
+  }
+
+  .wheel-item {
+    max-width: min(620px, calc(100vw - var(--wheel-item-left) - 96px));
+  }
+}
+
+@media (max-width: 640px) {
+  ion-content {
+    --padding-start: 0;
+    --padding-end: 0;
+    --padding-bottom: 96px;
+  }
+
+  .search-top-bar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 44px;
+    grid-template-areas:
+      'brand library'
+      'search search';
+    gap: 10px;
+    padding: 0 14px;
+  }
+
+  .logo-section {
+    grid-area: brand;
+    min-width: 0;
+  }
+
+  .logo-icon {
+    width: 30px;
+    height: 30px;
+  }
+
+  .melodix-text {
+    font-size: 19px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .search-bar {
+    grid-area: search;
+    width: 100%;
+    max-width: none;
+
+    &:hover {
+      transform: none;
+    }
+
+    ::ng-deep .searchbar-input {
+      min-height: 42px !important;
+      padding-inline-start: 44px !important;
+    }
+
+    ::ng-deep .searchbar-search-icon {
+      left: 22px !important;
+    }
+  }
+
+  .library-btn {
+    grid-area: library;
+    width: 44px;
+    height: 44px;
+    margin: 0;
+  }
+
+  .idle-area {
+    min-height: calc(100dvh - 174px);
+    margin-top: 8px;
+    overflow: hidden;
+  }
+
+  .song-wheel {
+    --wheel-arc-size: 880px;
+    --wheel-arc-radius: 440px;
+    --wheel-item-left: 72px;
+
+    width: 100%;
+    max-width: none;
+    height: min(560px, calc(100dvh - 190px));
+    min-height: 460px;
+    margin-left: 0;
+  }
+
+  .wheel-item {
+    gap: 14px;
+    max-width: calc(100vw - var(--wheel-item-left) - 12px);
+
+    &.selected {
+      .wheel-title {
+        max-width: calc(100vw - var(--wheel-item-left) - 64px);
+        font-size: clamp(21px, 5.6vw, 23px);
+        line-height: 1.08;
+        overflow: visible;
+        text-overflow: clip;
+        white-space: normal;
+      }
+
+      .wheel-dot {
+        width: 19px;
+        height: 19px;
+      }
+    }
+  }
+
+  .wheel-title {
+    font-size: 15px;
+  }
+
+  .wheel-artist {
+    font-size: 11px;
+  }
 }
