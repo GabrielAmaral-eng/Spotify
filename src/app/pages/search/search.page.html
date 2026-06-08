@@ -37,6 +37,10 @@
     <div
       class="song-wheel"
       (wheel)="onWheel($event)"
+      (pointerdown)="onWheelPointerDown($event)"
+      (pointermove)="onWheelPointerMove($event)"
+      (pointerup)="onWheelPointerEnd($event)"
+      (pointercancel)="onWheelPointerEnd($event)"
       (mouseenter)="onWheelMouseEnter($event)"
       tabindex="0"
     >

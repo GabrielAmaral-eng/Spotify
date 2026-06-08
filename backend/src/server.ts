@@ -9,10 +9,13 @@ import { tokenService } from './modules/spotify/token.service';
 const app = express();
 const port = env.PORT;
 const frontendUrl = env.FRONTEND_URL;
+const allowedOrigins = Array.from(
+  new Set([frontendUrl, 'http://localhost:8100', 'http://127.0.0.1:8100'])
+);
 
 app.use(
   cors({
-    origin: frontendUrl,
+    origin: allowedOrigins,
     credentials: true
   })
 );

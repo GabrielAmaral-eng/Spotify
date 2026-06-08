@@ -1,4 +1,4 @@
 <ion-app>
   <ion-router-outlet></ion-router-outlet>
-  <app-mini-player></app-mini-player>
+  <app-mini-player *ngIf="showMiniPlayer$ | async"></app-mini-player>
 </ion-app>

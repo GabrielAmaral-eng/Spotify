@@ -57,6 +57,11 @@ export class SearchPage implements OnInit, OnDestroy {
   ];
   selectedSongIndex = 3;
   private lastWheelTime = 0;
+  private wheelPointerActive = false;
+  private wheelPointerId: number | null = null;
+  private wheelPointerLastY = 0;
+  private wheelPointerDelta = 0;
+  private readonly wheelPointerStep = 48;
 
   ngOnInit(): void {
     this.playlistService.loadPlaylists().pipe(takeUntil(this.destroy$)).subscribe();
@@ -175,8 +180,9 @@ export class SearchPage implements OnInit, OnDestroy {
   }
 
   getItemTransform(offset: number): string {
-    const itemSpacing = 72;
-    const radius = 520;
+    const compact = typeof window !== 'undefined' && window.matchMedia('(max-width: 640px)').matches;
+    const itemSpacing = compact ? 62 : 72;
+    const radius = compact ? 430 : 520;
     const y = offset * itemSpacing;
     const x = -radius + Math.sqrt(Math.max(0, radius * radius - y * y));
     return `translate(${x}px, calc(-50% + ${y}px))`;
@@ -208,6 +214,48 @@ export class SearchPage implements OnInit, OnDestroy {
     } else if (event.deltaY > 0) {
       this.selectNext();
     }
+  }
+
+  onWheelPointerDown(event: PointerEvent): void {
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+
+    event.preventDefault();
+    this.wheelPointerActive = true;
+    this.wheelPointerId = event.pointerId;
+    this.wheelPointerLastY = event.clientY;
+    this.wheelPointerDelta = 0;
+
+    const target = event.currentTarget as HTMLElement;
+    target.focus({ preventScroll: true });
+    target.setPointerCapture?.(event.pointerId);
+  }
+
+  onWheelPointerMove(event: PointerEvent): void {
+    if (!this.wheelPointerActive || event.pointerId !== this.wheelPointerId) return;
+
+    event.preventDefault();
+    this.wheelPointerDelta += event.clientY - this.wheelPointerLastY;
+    this.wheelPointerLastY = event.clientY;
+
+    while (Math.abs(this.wheelPointerDelta) >= this.wheelPointerStep) {
+      if (this.wheelPointerDelta > 0) {
+        this.selectPrev();
+        this.wheelPointerDelta -= this.wheelPointerStep;
+      } else {
+        this.selectNext();
+        this.wheelPointerDelta += this.wheelPointerStep;
+      }
+    }
+  }
+
+  onWheelPointerEnd(event: PointerEvent): void {
+    if (event.pointerId !== this.wheelPointerId) return;
+
+    const target = event.currentTarget as HTMLElement;
+    target.releasePointerCapture?.(event.pointerId);
+    this.wheelPointerActive = false;
+    this.wheelPointerId = null;
+    this.wheelPointerDelta = 0;
   }
 
   onWheelMouseEnter(event: MouseEvent): void {
