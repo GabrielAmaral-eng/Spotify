@@ -10,12 +10,17 @@ export class PlayerService {
   private readonly progressSubject = new BehaviorSubject<number>(0);
   private readonly isLoadingSubject = new BehaviorSubject<boolean>(false);
   private readonly playbackMessageSubject = new Subject<string>();
+  private readonly skipPreviousSubject = new Subject<void>();
+  private readonly skipNextSubject = new Subject<void>();
 
   readonly currentTrack$: Observable<Track | null> = this.currentTrackSubject.asObservable();
   readonly isPlaying$: Observable<boolean> = this.isPlayingSubject.asObservable();
   readonly progress$: Observable<number> = this.progressSubject.asObservable();
   readonly isLoading$: Observable<boolean> = this.isLoadingSubject.asObservable();
   readonly playbackMessage$: Observable<string> = this.playbackMessageSubject.asObservable();
+  // Pedidos de faixa anterior/proxima — quem mantem a fila (a roda na busca) reage.
+  readonly skipPrevious$: Observable<void> = this.skipPreviousSubject.asObservable();
+  readonly skipNext$: Observable<void> = this.skipNextSubject.asObservable();
 
   constructor() {
     this.audio.addEventListener('timeupdate', () => this.updateProgress());
@@ -71,6 +76,16 @@ export class PlayerService {
     this.audio.pause();
     this.isPlayingSubject.next(false);
     this.isLoadingSubject.next(false);
+  }
+
+  /** Pede a faixa anterior (uma para cima na roda). */
+  requestPrevious(): void {
+    this.skipPreviousSubject.next();
+  }
+
+  /** Pede a proxima faixa (uma para baixo na roda). */
+  requestNext(): void {
+    this.skipNextSubject.next();
   }
 
   toggle(): void {

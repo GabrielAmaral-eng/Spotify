@@ -52,6 +52,8 @@ export class SearchPage implements OnInit, OnDestroy {
   private wheelPointerId: number | null = null;
   private wheelPointerLastY = 0;
   private wheelPointerDelta = 0;
+  private wheelPointerTravel = 0;
+  private wheelPointerDownIndex: number | null = null;
   private readonly wheelPointerStep = 48;
 
   ngOnInit(): void {
@@ -94,6 +96,14 @@ export class SearchPage implements OnInit, OnDestroy {
       debounceTime(300),
       takeUntil(this.destroy$)
     ).subscribe(() => this.playWheelSelection());
+
+    // Botoes de voltar/avancar do player movem a roda (cima/baixo).
+    this.playerService.skipPrevious$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => this.selectPrev());
+    this.playerService.skipNext$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => this.selectNext());
   }
 
   ngOnDestroy(): void {
@@ -218,6 +228,34 @@ export class SearchPage implements OnInit, OnDestroy {
     return Math.max(0, 1 - (d / 3.2) ** 2);
   }
 
+  /** So faixas ainda visiveis (antes do fade completo) recebem clique. */
+  getItemPointerEvents(offset: number): 'auto' | 'none' {
+    return this.getItemOpacity(offset) > 0 ? 'auto' : 'none';
+  }
+
+  /** Seleciona ao clicar numa faixa visivel: a roda rola ate o centro e toca. */
+  private selectByClick(index: number): void {
+    if (index < 0 || index >= this.wheelTracks.length || index === this.selectedSongIndex) {
+      return;
+    }
+
+    this.selectedSongIndex = index;
+    this.wheelSelection$.next();
+  }
+
+  /** Descobre o indice da faixa sob o ponteiro a partir do data-attribute. */
+  private resolveWheelIndex(event: PointerEvent): number | null {
+    const item = (event.target as HTMLElement | null)?.closest<HTMLElement>('.wheel-item');
+    const raw = item?.dataset['wheelIndex'];
+
+    if (raw === undefined) {
+      return null;
+    }
+
+    const index = Number(raw);
+    return Number.isInteger(index) ? index : null;
+  }
+
   selectPrev(): void {
     const length = this.wheelTracks.length;
     if (length === 0) return;
@@ -253,6 +291,8 @@ export class SearchPage implements OnInit, OnDestroy {
     this.wheelPointerId = event.pointerId;
     this.wheelPointerLastY = event.clientY;
     this.wheelPointerDelta = 0;
+    this.wheelPointerTravel = 0;
+    this.wheelPointerDownIndex = this.resolveWheelIndex(event);
 
     const target = event.currentTarget as HTMLElement;
     target.focus({ preventScroll: true });
@@ -263,7 +303,9 @@ export class SearchPage implements OnInit, OnDestroy {
     if (!this.wheelPointerActive || event.pointerId !== this.wheelPointerId) return;
 
     event.preventDefault();
-    this.wheelPointerDelta += event.clientY - this.wheelPointerLastY;
+    const dy = event.clientY - this.wheelPointerLastY;
+    this.wheelPointerTravel += Math.abs(dy);
+    this.wheelPointerDelta += dy;
     this.wheelPointerLastY = event.clientY;
 
     while (Math.abs(this.wheelPointerDelta) >= this.wheelPointerStep) {
@@ -282,9 +324,17 @@ export class SearchPage implements OnInit, OnDestroy {
 
     const target = event.currentTarget as HTMLElement;
     target.releasePointerCapture?.(event.pointerId);
+
+    // Toque/clique sem arrasto = selecao direta: a roda rola ate a faixa.
+    if (this.wheelPointerTravel < 10 && this.wheelPointerDownIndex !== null) {
+      this.selectByClick(this.wheelPointerDownIndex);
+    }
+
     this.wheelPointerActive = false;
     this.wheelPointerId = null;
     this.wheelPointerDelta = 0;
+    this.wheelPointerTravel = 0;
+    this.wheelPointerDownIndex = null;
   }
 
   onWheelMouseEnter(event: MouseEvent): void {

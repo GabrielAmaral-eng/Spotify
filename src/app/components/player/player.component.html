@@ -11,7 +11,7 @@
 
       <div class="player-panel">
         <div class="player-actions" *ngIf="favoriteIds$ | async as favoriteIds">
-          <ion-button class="skip-button" fill="clear" type="button" aria-label="Faixa anterior" disabled>
+          <ion-button class="skip-button" fill="clear" type="button" aria-label="Faixa anterior" (click)="previous()">
             <ion-icon name="play-skip-back" aria-hidden="true"></ion-icon>
           </ion-button>
 
@@ -35,7 +35,7 @@
             </ng-template>
           </ion-button>
 
-          <ion-button class="skip-button" fill="clear" type="button" aria-label="Proxima faixa" disabled>
+          <ion-button class="skip-button" fill="clear" type="button" aria-label="Proxima faixa" (click)="next()">
             <ion-icon name="play-skip-forward" aria-hidden="true"></ion-icon>
           </ion-button>
 

@@ -62,8 +62,10 @@
         *ngFor="let song of wheelTracks; let i = index; trackBy: trackByTrackId"
         class="wheel-item"
         [class.selected]="i === selectedSongIndex"
+        [attr.data-wheel-index]="i"
         [style.transform]="getItemTransform(getOffsetForSong(i))"
         [style.opacity]="getItemOpacity(getOffsetForSong(i))"
+        [style.pointer-events]="getItemPointerEvents(getOffsetForSong(i))"
       >
         <div class="wheel-dot"></div>
         <div class="wheel-text">

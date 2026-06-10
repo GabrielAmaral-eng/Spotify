@@ -37,6 +37,16 @@ export class PlayerComponent implements OnInit {
     this.playerService.toggle();
   }
 
+  /** Botao da esquerda: volta uma faixa (uma para cima na roda). */
+  previous(): void {
+    this.playerService.requestPrevious();
+  }
+
+  /** Botao da direita: avanca uma faixa (uma para baixo na roda). */
+  next(): void {
+    this.playerService.requestNext();
+  }
+
   seek(event: Event): void {
     const value = (event as CustomEvent<{ value: number | number[] }>).detail.value;
     const progress = Array.isArray(value) ? value[0] : value;
