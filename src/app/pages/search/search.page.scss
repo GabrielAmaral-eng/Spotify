@@ -8,6 +8,13 @@ ion-content {
   --padding-top: 0;
 }
 
+/* Pagina travada (ion-content [scrollY]="false"); a lista rola sozinha. */
+.search-results {
+  max-height: calc(100dvh - 76px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 /* Player docado — ocupa a mesma ancora do antigo mini-player (rodape). */
 .search-player-dock {
   position: fixed;

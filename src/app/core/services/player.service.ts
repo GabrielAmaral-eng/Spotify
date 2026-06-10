@@ -12,6 +12,7 @@ export class PlayerService {
   private readonly playbackMessageSubject = new Subject<string>();
   private readonly skipPreviousSubject = new Subject<void>();
   private readonly skipNextSubject = new Subject<void>();
+  private readonly volumeSubject = new BehaviorSubject<number>(50);
 
   readonly currentTrack$: Observable<Track | null> = this.currentTrackSubject.asObservable();
   readonly isPlaying$: Observable<boolean> = this.isPlayingSubject.asObservable();
@@ -21,6 +22,8 @@ export class PlayerService {
   // Pedidos de faixa anterior/proxima — quem mantem a fila (a roda na busca) reage.
   readonly skipPrevious$: Observable<void> = this.skipPreviousSubject.asObservable();
   readonly skipNext$: Observable<void> = this.skipNextSubject.asObservable();
+  /** Volume da reproducao em porcentagem (0–100), padrao 50%. */
+  readonly volume$: Observable<number> = this.volumeSubject.asObservable();
 
   constructor() {
     this.audio.addEventListener('timeupdate', () => this.updateProgress());
@@ -36,6 +39,18 @@ export class PlayerService {
       this.isLoadingSubject.next(false);
       this.isPlayingSubject.next(true);
     });
+    this.audio.volume = this.volumeSubject.value / 100;
+  }
+
+  get currentVolume(): number {
+    return this.volumeSubject.value;
+  }
+
+  /** Define o volume (0–100); reflete no elemento de audio da pagina. */
+  setVolume(percent: number): void {
+    const clamped = Math.min(100, Math.max(0, Math.round(percent)));
+    this.audio.volume = clamped / 100;
+    this.volumeSubject.next(clamped);
   }
 
   play(track: Track): void {

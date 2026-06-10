@@ -151,12 +151,114 @@
   right: 0;
 }
 
+.player-progress-row {
+  align-items: center;
+  display: flex;
+  gap: 14px;
+  justify-content: center;
+  width: 100%;
+}
+
 .player-progress {
   align-items: center;
   display: grid;
   gap: clamp(18px, 2.4vw, 34px);
   grid-template-columns: minmax(44px, max-content) minmax(220px, 1fr) minmax(44px, max-content);
   width: 100%;
+}
+
+/* ===== Controle de volume ===== */
+.volume-control {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.volume-button {
+  // Sem outline nem box: so o icone, com brilho no hover.
+  --background: transparent;
+  --background-hover: transparent;
+  --background-activated: transparent;
+  --background-focused: transparent;
+  --box-shadow: none;
+  --border-radius: 0;
+  --color: #ffffff;
+  --padding-start: 0;
+  --padding-end: 0;
+  --ripple-color: transparent;
+  height: 40px;
+  margin: 0;
+  width: 40px;
+}
+
+.volume-button__icon {
+  width: 24px;
+  height: 24px;
+  filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.35));
+  transition: filter 0.2s ease, transform 0.2s ease;
+}
+
+.volume-button:hover .volume-button__icon {
+  filter:
+    drop-shadow(0 0 6px rgba(255, 255, 255, 0.85))
+    drop-shadow(0 0 18px rgba(255, 255, 255, 0.4));
+  transform: scale(1.12);
+}
+
+.volume-popover {
+  position: absolute;
+  bottom: calc(100% + 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 16px 12px;
+  border-radius: 16px;
+  background: rgba(14, 18, 17, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 16px 42px rgba(0, 0, 0, 0.42);
+  backdrop-filter: blur(14px);
+  z-index: 5;
+}
+
+.volume-slider {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  width: 26px;
+  height: 130px;
+  cursor: pointer;
+  touch-action: none;
+}
+
+.volume-slider__track {
+  position: relative;
+  width: 6px;
+  height: 100%;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.volume-slider__fill {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  border-radius: 999px;
+  background: #ffffff;
+  filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.5));
+}
+
+.volume-slider__knob {
+  position: absolute;
+  left: 50%;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #ffffff;
+  transform: translate(-50%, 50%);
+  box-shadow:
+    0 0 10px rgba(255, 255, 255, 0.94),
+    0 0 28px rgba(255, 255, 255, 0.45);
 }
 
 .player-progress span {
@@ -292,6 +394,8 @@ ion-range {
   background: transparent;
   min-height: auto;
   padding: 18px 22px;
+  // Permite o popover de volume aparecer acima sem ser cortado.
+  overflow: visible;
 }
 
 :host(.embedded) .edge-button {

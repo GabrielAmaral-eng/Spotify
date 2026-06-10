@@ -60,16 +60,45 @@
           </ion-button>
         </div>
 
-        <div class="player-progress">
-          <span>{{ progressToSeconds(progressState.value, track.duration) | duration }}</span>
-          <ion-range
-            min="0"
-            max="100"
-            [value]="progressState.value ?? 0"
-            aria-label="Progresso"
-            (ionChange)="seek($event)"
-          ></ion-range>
-          <span>{{ track.duration | duration }}</span>
+        <div class="player-progress-row">
+          <div class="player-progress">
+            <span>{{ progressToSeconds(progressState.value, track.duration) | duration }}</span>
+            <ion-range
+              min="0"
+              max="100"
+              [value]="progressState.value ?? 0"
+              aria-label="Progresso"
+              (ionChange)="seek($event)"
+            ></ion-range>
+            <span>{{ track.duration | duration }}</span>
+          </div>
+
+          <div class="volume-control" #volumeControl>
+            <ion-button
+              class="volume-button"
+              fill="clear"
+              type="button"
+              aria-label="Volume"
+              (click)="toggleVolume($event)"
+            >
+              <img class="volume-button__icon" src="assets/icon/volume.svg" alt="" aria-hidden="true" />
+            </ion-button>
+
+            <div class="volume-popover" *ngIf="volumeOpen">
+              <div
+                class="volume-slider"
+                (pointerdown)="onVolumePointerDown($event)"
+                (pointermove)="onVolumePointerMove($event)"
+                (pointerup)="onVolumePointerEnd($event)"
+                (pointercancel)="onVolumePointerEnd($event)"
+              >
+                <div class="volume-slider__track">
+                  <div class="volume-slider__fill" [style.height.%]="volume"></div>
+                  <div class="volume-slider__knob" [style.bottom.%]="volume"></div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div class="player-meta">

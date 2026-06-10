@@ -1,4 +1,4 @@
-<ion-content class="ion-padding">
+<ion-content class="ion-padding" [scrollY]="false">
   <!-- Top Bar with Logo, Search Bar, and Library Button -->
   <div class="search-top-bar">
     <!-- Logo and Melodix Text -->
@@ -86,31 +86,34 @@
     ></app-audio-visualizer>
   </div>
 
-  <ion-list *ngIf="loading">
-    <ion-item lines="none" *ngFor="let skeleton of [1, 2, 3, 4]">
-      <ion-thumbnail slot="start">
-        <ion-skeleton-text animated></ion-skeleton-text>
-      </ion-thumbnail>
-      <ion-label>
-        <h3><ion-skeleton-text animated style="width: 70%"></ion-skeleton-text></h3>
-        <p><ion-skeleton-text animated style="width: 45%"></ion-skeleton-text></p>
-      </ion-label>
-    </ion-item>
-  </ion-list>
+  <!-- Lista de resultados: rola por conta propria (a pagina fica travada). -->
+  <div class="search-results" *ngIf="loading || results.length">
+    <ion-list *ngIf="loading">
+      <ion-item lines="none" *ngFor="let skeleton of [1, 2, 3, 4]">
+        <ion-thumbnail slot="start">
+          <ion-skeleton-text animated></ion-skeleton-text>
+        </ion-thumbnail>
+        <ion-label>
+          <h3><ion-skeleton-text animated style="width: 70%"></ion-skeleton-text></h3>
+          <p><ion-skeleton-text animated style="width: 45%"></ion-skeleton-text></p>
+        </ion-label>
+      </ion-item>
+    </ion-list>
 
-  <ng-container *ngIf="favoriteIds$ | async as favoriteIds">
-    <app-track-item
-      *ngFor="let track of results; trackBy: trackByTrackId"
-      [track]="track"
-      [favorite]="favoriteIds.has(track.id)"
-      (playTrack)="play($event)"
-      (toggleFavorite)="toggleFavorite($event)"
-      (addToPlaylist)="addToPlaylist($event)"
-    ></app-track-item>
-  </ng-container>
+    <ng-container *ngIf="favoriteIds$ | async as favoriteIds">
+      <app-track-item
+        *ngFor="let track of results; trackBy: trackByTrackId"
+        [track]="track"
+        [favorite]="favoriteIds.has(track.id)"
+        (playTrack)="play($event)"
+        (toggleFavorite)="toggleFavorite($event)"
+        (addToPlaylist)="addToPlaylist($event)"
+      ></app-track-item>
+    </ng-container>
+  </div>
 
-  <!-- Player docado no lugar do mini-player — so aparece com musica tocando -->
-  <div class="search-player-dock" *ngIf="currentTrack$ | async">
+  <!-- Player docado — some durante a busca e volta ao limpar a barra. -->
+  <div class="search-player-dock" *ngIf="(currentTrack$ | async) && !query">
     <app-player [embedded]="true"></app-player>
   </div>
 </ion-content>

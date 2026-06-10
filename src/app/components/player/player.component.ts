@@ -1,4 +1,4 @@
-import { Component, HostBinding, Input, OnInit, inject } from '@angular/core';
+import { Component, ElementRef, HostBinding, HostListener, Input, OnInit, ViewChild, inject } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { ActionSheetController, ToastController } from '@ionic/angular';
 import { PlayerService } from '../../core/services/player.service';
@@ -22,15 +22,23 @@ export class PlayerComponent implements OnInit {
   /** Versao compacta para encaixe na pagina de busca. */
   @Input() @HostBinding('class.embedded') embedded = false;
 
+  @ViewChild('volumeControl') private volumeControl?: ElementRef<HTMLElement>;
+
   readonly currentTrack$ = this.playerService.currentTrack$;
   readonly isPlaying$ = this.playerService.isPlaying$;
   readonly isLoading$ = this.playerService.isLoading$;
   readonly progress$ = this.playerService.progress$;
   readonly favoriteIds$ = this.playlistService.favoriteIds$;
 
+  /** Volume em porcentagem (0–100) e visibilidade do slider. */
+  volume = this.playerService.currentVolume;
+  volumeOpen = false;
+  private volumeDragging = false;
+
   ngOnInit(): void {
     this.playlistService.loadPlaylists().subscribe();
     this.playlistService.loadFavorites().subscribe();
+    this.volume = this.playerService.currentVolume;
   }
 
   toggle(): void {
@@ -45,6 +53,52 @@ export class PlayerComponent implements OnInit {
   /** Botao da direita: avanca uma faixa (uma para baixo na roda). */
   next(): void {
     this.playerService.requestNext();
+  }
+
+  toggleVolume(event: Event): void {
+    event.stopPropagation();
+    this.volumeOpen = !this.volumeOpen;
+  }
+
+  /** Fecha o slider ao clicar fora do controle de volume. */
+  @HostListener('document:pointerdown', ['$event'])
+  onDocumentPointerDown(event: PointerEvent): void {
+    if (!this.volumeOpen) {
+      return;
+    }
+
+    const control = this.volumeControl?.nativeElement;
+    if (control && !control.contains(event.target as Node)) {
+      this.volumeOpen = false;
+    }
+  }
+
+  onVolumePointerDown(event: PointerEvent): void {
+    event.preventDefault();
+    this.volumeDragging = true;
+    (event.currentTarget as HTMLElement).setPointerCapture?.(event.pointerId);
+    this.updateVolumeFromEvent(event);
+  }
+
+  onVolumePointerMove(event: PointerEvent): void {
+    if (!this.volumeDragging) {
+      return;
+    }
+    this.updateVolumeFromEvent(event);
+  }
+
+  onVolumePointerEnd(event: PointerEvent): void {
+    this.volumeDragging = false;
+    (event.currentTarget as HTMLElement).releasePointerCapture?.(event.pointerId);
+  }
+
+  /** Converte a posicao vertical do ponteiro em volume (0–100, cima = mais). */
+  private updateVolumeFromEvent(event: PointerEvent): void {
+    const track = event.currentTarget as HTMLElement;
+    const rect = track.getBoundingClientRect();
+    const percent = ((rect.bottom - event.clientY) / rect.height) * 100;
+    this.volume = Math.min(100, Math.max(0, Math.round(percent)));
+    this.playerService.setVolume(this.volume);
   }
 
   seek(event: Event): void {
