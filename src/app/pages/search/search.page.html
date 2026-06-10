@@ -45,8 +45,21 @@
       tabindex="0"
     >
       <div class="wheel-arc-circle"></div>
+
+      <!-- Placeholder quando ainda nao ha musicas: estilizado como a selecionada -->
       <div
-        *ngFor="let song of mockSongs; let i = index; trackBy: trackBySongId"
+        *ngIf="wheelTracks.length === 0"
+        class="wheel-item selected"
+        [style.transform]="getItemTransform(0)"
+      >
+        <div class="wheel-dot"></div>
+        <div class="wheel-text">
+          <div class="wheel-title">Nenhuma música selecionada</div>
+        </div>
+      </div>
+
+      <div
+        *ngFor="let song of wheelTracks; let i = index; trackBy: trackByTrackId"
         class="wheel-item"
         [class.selected]="i === selectedSongIndex"
         [style.transform]="getItemTransform(getOffsetForSong(i))"

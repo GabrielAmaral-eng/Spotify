@@ -43,21 +43,10 @@ export class SearchPage implements OnInit, OnDestroy {
   /** Controla a visibilidade do painel de playlists */
   showPlaylists = false;
 
-  readonly mockSongs: ReadonlyArray<{ id: string; title: string; artist: string }> = [
-    { id: 'eclipse',     title: 'Eclipse dos Dias',     artist: 'Tessália'    },
-    { id: 'horizonte',   title: 'Horizonte de Neon',    artist: 'Vértice'     },
-    { id: 'coracao',     title: 'Coração de Fumaça',    artist: 'Lunário'     },
-    { id: 'alem',        title: 'Além do Silêncio',     artist: 'Aurora Vex'  },
-    { id: 'fragmentos',  title: 'Fragmentos do Amanhã', artist: 'Sideral'     },
-    { id: 'mares',       title: 'Marés Internas',       artist: 'Oceânica'    },
-    { id: 'ultima',      title: 'Última Estação',       artist: 'Subtérreo'   },
-    { id: 'luz',         title: 'Luz que Fica',         artist: 'Minimalista' },
-    { id: 'sombras',     title: 'Sombras de Cristal',   artist: 'Nebulosa'    },
-    { id: 'pulsar',      title: 'Pulsar do Vazio',      artist: 'Cassiopeia'  },
-    { id: 'ecos',        title: 'Ecos do Norte',        artist: 'Arcano'      },
-    { id: 'ressonancia', title: 'Ressonância Plena',    artist: 'Vértex'      },
-  ];
-  selectedSongIndex = 3;
+  /** Musicas da ultima pesquisa, exibidas na roda rolavel e infinita. */
+  wheelTracks: Track[] = [];
+  selectedSongIndex = 0;
+  private readonly wheelSelection$ = new Subject<void>();
   private lastWheelTime = 0;
   private wheelPointerActive = false;
   private wheelPointerId: number | null = null;
@@ -98,6 +87,13 @@ export class SearchPage implements OnInit, OnDestroy {
     ).subscribe((tracks) => {
       this.results = tracks;
     });
+
+    // Ao rolar a roda, toca a faixa central — so depois que a rolagem assenta,
+    // para nao recarregar o stream a cada tique do scroll.
+    this.wheelSelection$.pipe(
+      debounceTime(300),
+      takeUntil(this.destroy$)
+    ).subscribe(() => this.playWheelSelection());
   }
 
   ngOnDestroy(): void {
@@ -117,8 +113,31 @@ export class SearchPage implements OnInit, OnDestroy {
   }
 
   play(track: Track): void {
+    this.loadWheelFromResults(track);
     this.playerService.play(track);
     this.clearSearch();
+  }
+
+  /**
+   * Guarda as sugestoes da pesquisa atual (no momento do clique) na roda e
+   * centraliza na faixa escolhida.
+   */
+  private loadWheelFromResults(selected: Track): void {
+    if (this.results.length === 0) {
+      return;
+    }
+
+    this.wheelTracks = [...this.results];
+    const index = this.wheelTracks.findIndex((track) => track.id === selected.id);
+    this.selectedSongIndex = index >= 0 ? index : 0;
+  }
+
+  /** Toca a faixa atualmente centralizada/destacada na roda. */
+  private playWheelSelection(): void {
+    const track = this.wheelTracks[this.selectedSongIndex];
+    if (track) {
+      this.playerService.play(track);
+    }
   }
 
   /** Limpa a barra de busca e os resultados ao selecionar uma musica. */
@@ -177,12 +196,8 @@ export class SearchPage implements OnInit, OnDestroy {
     return track.id;
   }
 
-  trackBySongId(_index: number, song: { id: string }): string {
-    return song.id;
-  }
-
   getOffsetForSong(songIdx: number): number {
-    const length = this.mockSongs.length;
+    const length = this.wheelTracks.length;
     let offset = songIdx - this.selectedSongIndex;
     while (offset > length / 2) offset -= length;
     while (offset <= -length / 2) offset += length;
@@ -204,13 +219,17 @@ export class SearchPage implements OnInit, OnDestroy {
   }
 
   selectPrev(): void {
-    const length = this.mockSongs.length;
+    const length = this.wheelTracks.length;
+    if (length === 0) return;
     this.selectedSongIndex = (this.selectedSongIndex - 1 + length) % length;
+    this.wheelSelection$.next();
   }
 
   selectNext(): void {
-    const length = this.mockSongs.length;
+    const length = this.wheelTracks.length;
+    if (length === 0) return;
     this.selectedSongIndex = (this.selectedSongIndex + 1) % length;
+    this.wheelSelection$.next();
   }
 
   onWheel(event: WheelEvent): void {
