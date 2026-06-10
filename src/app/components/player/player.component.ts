@@ -24,6 +24,7 @@ export class PlayerComponent implements OnInit {
 
   readonly currentTrack$ = this.playerService.currentTrack$;
   readonly isPlaying$ = this.playerService.isPlaying$;
+  readonly isLoading$ = this.playerService.isLoading$;
   readonly progress$ = this.playerService.progress$;
   readonly favoriteIds$ = this.playlistService.favoriteIds$;
 

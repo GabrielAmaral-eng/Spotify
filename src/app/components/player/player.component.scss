@@ -111,6 +111,26 @@
   }
 }
 
+/* Spinner de carregamento — herda o glow do .play-button, gira e nao e clicavel. */
+.play-button__spinner {
+  width: 56%;
+  height: 56%;
+  object-fit: contain;
+  pointer-events: none;
+  animation: player-spinner-rotate 0.85s linear infinite;
+}
+
+/* Enquanto carrega o botao fica desabilitado, mas mantemos o brilho cheio. */
+.play-button[disabled] {
+  opacity: 1;
+}
+
+@keyframes player-spinner-rotate {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .utility-button {
   height: 44px;
   opacity: 0.72;

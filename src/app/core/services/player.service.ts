@@ -8,18 +8,28 @@ export class PlayerService {
   private readonly currentTrackSubject = new BehaviorSubject<Track | null>(null);
   private readonly isPlayingSubject = new BehaviorSubject<boolean>(false);
   private readonly progressSubject = new BehaviorSubject<number>(0);
+  private readonly isLoadingSubject = new BehaviorSubject<boolean>(false);
   private readonly playbackMessageSubject = new Subject<string>();
 
   readonly currentTrack$: Observable<Track | null> = this.currentTrackSubject.asObservable();
   readonly isPlaying$: Observable<boolean> = this.isPlayingSubject.asObservable();
   readonly progress$: Observable<number> = this.progressSubject.asObservable();
+  readonly isLoading$: Observable<boolean> = this.isLoadingSubject.asObservable();
   readonly playbackMessage$: Observable<string> = this.playbackMessageSubject.asObservable();
 
   constructor() {
     this.audio.addEventListener('timeupdate', () => this.updateProgress());
     this.audio.addEventListener('ended', () => {
       this.isPlayingSubject.next(false);
+      this.isLoadingSubject.next(false);
       this.progressSubject.next(100);
+    });
+    // Enquanto o stream carrega/bufferiza, sinalizamos "carregando"; quando a
+    // reproducao realmente comeca, o spinner sai e o estado vira "tocando".
+    this.audio.addEventListener('waiting', () => this.isLoadingSubject.next(true));
+    this.audio.addEventListener('playing', () => {
+      this.isLoadingSubject.next(false);
+      this.isPlayingSubject.next(true);
     });
   }
 
@@ -37,6 +47,7 @@ export class PlayerService {
   private startPlayback(track: Track): void {
     if (!track.previewUrl) {
       this.clearAudio();
+      this.isLoadingSubject.next(false);
       this.isPlayingSubject.next(false);
       this.progressSubject.next(0);
       this.playbackMessageSubject.next('Esta musica nao esta disponivel para reproducao.');
@@ -44,6 +55,12 @@ export class PlayerService {
     }
 
     this.audio.src = track.previewUrl;
+
+    // Estado otimista: ja indicamos "carregando + tocando" no ato da selecao,
+    // antes de o stream terminar de carregar. O spinner aparece imediatamente
+    // e some quando a reproducao realmente comeca (evento 'playing').
+    this.isLoadingSubject.next(true);
+    this.isPlayingSubject.next(true);
 
     this.audio.play()
       .then(() => this.isPlayingSubject.next(true))
@@ -53,6 +70,7 @@ export class PlayerService {
   pause(): void {
     this.audio.pause();
     this.isPlayingSubject.next(false);
+    this.isLoadingSubject.next(false);
   }
 
   toggle(): void {
@@ -102,6 +120,7 @@ export class PlayerService {
     }
 
     console.error('Falha ao reproduzir a musica:', error);
+    this.isLoadingSubject.next(false);
     this.isPlayingSubject.next(false);
     this.playbackMessageSubject.next('Nao foi possivel reproduzir esta musica.');
   }
