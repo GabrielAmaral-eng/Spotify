@@ -118,6 +118,14 @@ export class SearchPage implements OnInit, OnDestroy {
 
   play(track: Track): void {
     this.playerService.play(track);
+    this.clearSearch();
+  }
+
+  /** Limpa a barra de busca e os resultados ao selecionar uma musica. */
+  private clearSearch(): void {
+    this.query = '';
+    this.results = [];
+    this.searchTerms.next('');
   }
 
   toggleFavorite(track: Track): void {
