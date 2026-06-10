@@ -158,7 +158,7 @@ p {
   overflow: visible;
   outline: none;
   flex-shrink: 0;
-  margin-left: -100px;
+  margin-left: -160px;
   touch-action: none;
   user-select: none;
 }
@@ -265,9 +265,20 @@ p {
   font-weight: 500;
   color: #ffffff;
   line-height: 1.15;
-  overflow: hidden;
-  text-overflow: ellipsis;
   transition: font-size 0.3s ease;
+
+  // Limita o titulo a area de scroll e aplica fade na borda (100% no limite).
+  max-width: clamp(220px, 34vw, 380px);
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent 100%);
+  mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent 100%);
+}
+
+// Texto interno que desliza (marquee) quando o titulo nao cabe.
+.wheel-title__text {
+  display: inline-block;
+  white-space: nowrap;
+  will-change: transform;
 }
 
 .wheel-artist {
@@ -393,9 +404,6 @@ ion-list {
         max-width: calc(100vw - var(--wheel-item-left) - 64px);
         font-size: clamp(21px, 5.6vw, 23px);
         line-height: 1.08;
-        overflow: visible;
-        text-overflow: clip;
-        white-space: normal;
       }
 
       .wheel-dot {

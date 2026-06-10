@@ -54,7 +54,9 @@
       >
         <div class="wheel-dot"></div>
         <div class="wheel-text">
-          <div class="wheel-title">Nenhuma música selecionada</div>
+          <div class="wheel-title">
+            <span class="wheel-title__text" appWheelMarquee>Nenhuma música selecionada</span>
+          </div>
         </div>
       </div>
 
@@ -69,7 +71,9 @@
       >
         <div class="wheel-dot"></div>
         <div class="wheel-text">
-          <div class="wheel-title">{{ song.title }}</div>
+          <div class="wheel-title">
+            <span class="wheel-title__text" appWheelMarquee>{{ song.title }}</span>
+          </div>
           <div class="wheel-artist">{{ song.artist }}</div>
         </div>
       </div>

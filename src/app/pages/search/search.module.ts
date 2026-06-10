@@ -8,6 +8,7 @@ import { SearchPage } from './search.page';
 import { PlaylistsComponent } from '../../components/playlists/playlists.component';
 import { AudioVisualizerComponent } from '../../components/audio-visualizer/audio-visualizer.component';
 import { PlayerComponent } from '../../components/player/player.component';
+import { WheelMarqueeDirective } from '../../shared/directives/wheel-marquee.directive';
 
 @NgModule({
   declarations: [SearchPage],
@@ -20,6 +21,7 @@ import { PlayerComponent } from '../../components/player/player.component';
     PlaylistsComponent,
     AudioVisualizerComponent,
     PlayerComponent,
+    WheelMarqueeDirective,
   ]
 })
 export class SearchPageModule {}
