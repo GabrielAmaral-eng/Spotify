@@ -89,4 +89,9 @@
       (addToPlaylist)="addToPlaylist($event)"
     ></app-track-item>
   </ng-container>
+
+  <!-- Player docado no lugar do mini-player — so aparece com musica tocando -->
+  <div class="search-player-dock" *ngIf="currentTrack$ | async">
+    <app-player [embedded]="true"></app-player>
+  </div>
 </ion-content>

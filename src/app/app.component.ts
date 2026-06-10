@@ -1,6 +1,7 @@
 import { Component, OnDestroy, inject } from '@angular/core';
+import { NavigationEnd, Router } from '@angular/router';
 import { ToastController } from '@ionic/angular';
-import { Observable, Subject, map, takeUntil } from 'rxjs';
+import { Observable, Subject, combineLatest, filter, map, startWith, takeUntil } from 'rxjs';
 import { PlayerService } from './core/services/player.service';
 
 @Component({
@@ -12,10 +13,22 @@ import { PlayerService } from './core/services/player.service';
 export class AppComponent implements OnDestroy {
   private readonly playerService = inject(PlayerService);
   private readonly toastController = inject(ToastController);
+  private readonly router = inject(Router);
   private readonly destroy$ = new Subject<void>();
 
-  readonly showMiniPlayer$: Observable<boolean> = this.playerService.currentTrack$.pipe(
-    map((track) => track !== null)
+  private readonly currentUrl$: Observable<string> = this.router.events.pipe(
+    filter((event): event is NavigationEnd => event instanceof NavigationEnd),
+    map((event) => event.urlAfterRedirects),
+    startWith(this.router.url)
+  );
+
+  // O mini-player aparece quando ha faixa tocando, exceto na busca, onde o
+  // player completo docado assume o lugar dele.
+  readonly showMiniPlayer$: Observable<boolean> = combineLatest([
+    this.playerService.currentTrack$,
+    this.currentUrl$
+  ]).pipe(
+    map(([track, url]) => track !== null && !url.startsWith('/search'))
   );
 
   constructor() {

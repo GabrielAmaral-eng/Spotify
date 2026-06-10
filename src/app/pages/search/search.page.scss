@@ -4,8 +4,17 @@
 }
 
 ion-content {
-  --padding-bottom: 112px;
+  --padding-bottom: 260px;
   --padding-top: 0;
+}
+
+/* Player docado — ocupa a mesma ancora do antigo mini-player (rodape). */
+.search-player-dock {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: calc(env(safe-area-inset-bottom) + 10px);
+  z-index: 20;
 }
 
 .search-top-bar {

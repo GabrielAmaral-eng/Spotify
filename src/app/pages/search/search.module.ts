@@ -7,6 +7,7 @@ import { SearchPageRoutingModule } from './search-routing.module';
 import { SearchPage } from './search.page';
 import { PlaylistsComponent } from '../../components/playlists/playlists.component';
 import { AudioVisualizerComponent } from '../../components/audio-visualizer/audio-visualizer.component';
+import { PlayerComponent } from '../../components/player/player.component';
 
 @NgModule({
   declarations: [SearchPage],
@@ -18,6 +19,7 @@ import { AudioVisualizerComponent } from '../../components/audio-visualizer/audi
     SearchPageRoutingModule,
     PlaylistsComponent,
     AudioVisualizerComponent,
+    PlayerComponent,
   ]
 })
 export class SearchPageModule {}

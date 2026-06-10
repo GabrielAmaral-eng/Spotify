@@ -34,6 +34,7 @@ export class SearchPage implements OnInit, OnDestroy {
 
   readonly favoriteIds$ = this.playlistService.favoriteIds$;
   readonly isPlaying$ = this.playerService.isPlaying$;
+  readonly currentTrack$ = this.playerService.currentTrack$;
   results: Track[] = [];
   query = '';
   loading = false;
