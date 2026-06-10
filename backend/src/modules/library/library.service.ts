@@ -318,7 +318,7 @@ class LibraryService {
   private mapTrack(track: FavoriteRow | PlaylistTrackRow): Track {
     return {
       id: track.track_id,
-      source: 'spotify',
+      source: 'audius',
       title: track.title,
       artist: track.artist,
       album: track.album,

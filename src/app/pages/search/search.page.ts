@@ -13,7 +13,7 @@ import {
 } from 'rxjs';
 import { PlayerService } from '../../core/services/player.service';
 import { PlaylistService } from '../../core/services/playlist.service';
-import { SpotifyService } from '../../core/services/spotify.service';
+import { AudiusService } from '../../core/services/audius.service';
 import { Track } from '../../shared/models/track.model';
 
 @Component({
@@ -23,7 +23,7 @@ import { Track } from '../../shared/models/track.model';
   standalone: false
 })
 export class SearchPage implements OnInit, OnDestroy {
-  private readonly spotifyService = inject(SpotifyService);
+  private readonly audiusService = inject(AudiusService);
   private readonly playerService = inject(PlayerService);
   private readonly playlistService = inject(PlaylistService);
   private readonly actionSheetController = inject(ActionSheetController);
@@ -83,7 +83,7 @@ export class SearchPage implements OnInit, OnDestroy {
           return of([]);
         }
 
-        return this.spotifyService.searchTracks(term).pipe(
+        return this.audiusService.searchTracks(term).pipe(
           catchError(() => {
             this.errorMessage = 'Não foi possível buscar músicas agora.';
             return of([]);
