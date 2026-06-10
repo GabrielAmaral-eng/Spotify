@@ -107,6 +107,11 @@
 
   ion-icon {
     font-size: clamp(54px, 5vw, 76px);
+  }
+
+  /* O triangulo do play parece descentralizado, entao recebe um empurrao otico.
+     O pause e simetrico e fica centralizado sozinho. */
+  ion-icon[name="play"] {
     margin-left: 5px;
   }
 }
