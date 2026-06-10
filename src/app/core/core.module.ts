@@ -4,16 +4,14 @@ import { ApiInterceptor } from './interceptors/api.interceptor';
 import { AuthService } from './services/auth.service';
 import { PlayerService } from './services/player.service';
 import { PlaylistService } from './services/playlist.service';
-import { SpotifyService } from './services/spotify.service';
-import { SpotifyWebPlaybackService } from './services/spotify-web-playback.service';
+import { AudiusService } from './services/audius.service';
 import { SupabaseService } from './services/supabase.service';
 
 @NgModule({
   providers: [
     SupabaseService,
     AuthService,
-    SpotifyService,
-    SpotifyWebPlaybackService,
+    AudiusService,
     PlayerService,
     PlaylistService,
     {

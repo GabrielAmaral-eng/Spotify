@@ -1,0 +1,69 @@
+:host {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  // Fonte única da verdade para largura/espaçamento das barras. O componente
+  // lê estes valores (getComputedStyle) para calcular quantas barras cabem em
+  // 85% da largura disponível — assim cálculo e visual nunca divergem.
+  --bar-width: 4px;
+  --bar-gap: 6px;
+}
+
+.audio-wave {
+  display: flex;
+  align-items: center;
+  gap: var(--bar-gap);
+  height: 180px;
+
+  // Glow branco luminoso, no mesmo padrão da página (drop-shadow branco)
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.45));
+}
+
+.wave-bar {
+  width: var(--bar-width);
+  height: 100%;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  transform-origin: center center;
+
+  // Gradiente vertical translúcido: simétrico, reforçando o aspecto de onda
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.25),
+    rgba(255, 255, 255, 0.95) 50%,
+    rgba(255, 255, 255, 0.25)
+  );
+
+  // A defasagem (animation-delay) é definida por barra no template,
+  // produzindo uma onda que viaja da esquerda para a direita.
+  animation: wave 1.4s ease-in-out infinite;
+}
+
+@keyframes wave {
+  0%,
+  100% {
+    transform: scaleY(0.18);
+    opacity: 0.55;
+  }
+  50% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+// Quando não há música tocando o componente nem é renderizado,
+// mas mantemos o estado pausado para reuso em outros contextos.
+.audio-wave.paused .wave-bar {
+  animation-play-state: paused;
+  transform: scaleY(0.18);
+  opacity: 0.45;
+}
+
+// Modo "live": o JS controla scaleY/opacity de cada barra a partir do espectro
+// real do áudio, então desligamos a animação CSS para não competir com ele.
+// Uma transição curta suaviza os saltos entre frames.
+.audio-wave.live .wave-bar {
+  animation: none;
+  transition: transform 0.07s ease-out, opacity 0.07s ease-out;
+}

@@ -1,0 +1,496 @@
+:host {
+  display: block;
+}
+
+.player-shell,
+.empty-player {
+  background:
+    radial-gradient(circle at 50% 30%, rgba(255, 255, 255, 0.045), transparent 26%),
+    linear-gradient(180deg, #151716 0%, #080f0c 100%);
+  color: #ffffff;
+  min-height: 100dvh;
+  overflow: hidden;
+  position: relative;
+}
+
+.player-shell {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+  padding: 48px clamp(64px, 7vw, 132px);
+}
+
+.player-panel {
+  display: grid;
+  gap: clamp(26px, 4.8vh, 44px);
+  justify-items: center;
+  width: min(90vw, 1700px);
+}
+
+.edge-button {
+  --background: rgba(0, 0, 0, 0.22);
+  --background-activated: rgba(255, 255, 255, 0.1);
+  --background-focused: rgba(255, 255, 255, 0.1);
+  --background-hover: rgba(255, 255, 255, 0.1);
+  --border-radius: 50%;
+  --color: rgba(255, 255, 255, 0.72);
+  --padding-end: 0;
+  --padding-start: 0;
+  height: 44px;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+  z-index: 2;
+
+  ion-icon {
+    font-size: 24px;
+  }
+}
+
+.edge-button--left {
+  left: 24px;
+}
+
+.edge-button--right {
+  right: 24px;
+}
+
+.player-actions {
+  align-items: center;
+  display: grid;
+  grid-template-columns: 88px 132px 88px;
+  justify-content: center;
+  position: relative;
+  width: min(680px, 100%);
+}
+
+.skip-button,
+.play-button,
+.utility-button {
+  --background: transparent;
+  --background-activated: transparent;
+  --background-focused: transparent;
+  --background-hover: transparent;
+  --box-shadow: none;
+  --color: #ffffff;
+  --padding-end: 0;
+  --padding-start: 0;
+  filter:
+    drop-shadow(0 0 5px rgba(255, 255, 255, 0.86))
+    drop-shadow(0 0 18px rgba(255, 255, 255, 0.35));
+  margin: 0;
+}
+
+.skip-button {
+  height: 88px;
+  opacity: 0.9;
+  width: 88px;
+
+  ion-icon {
+    font-size: clamp(44px, 4vw, 64px);
+  }
+}
+
+.skip-button[disabled] {
+  opacity: 0.9;
+}
+
+.play-button {
+  --border-color: rgba(255, 255, 255, 0.68);
+  --border-radius: 50%;
+  --border-style: solid;
+  --border-width: 2px;
+  height: clamp(116px, 10vw, 152px);
+  justify-self: center;
+  width: clamp(116px, 10vw, 152px);
+
+  ion-icon {
+    font-size: clamp(54px, 5vw, 76px);
+  }
+
+  /* O triangulo do play parece descentralizado, entao recebe um empurrao otico.
+     O pause e simetrico e fica centralizado sozinho. */
+  ion-icon[name="play"] {
+    margin-left: 5px;
+  }
+}
+
+/* Spinner de carregamento — herda o glow do .play-button, gira e nao e clicavel. */
+.play-button__spinner {
+  width: 56%;
+  height: 56%;
+  object-fit: contain;
+  pointer-events: none;
+  animation: player-spinner-rotate 0.85s linear infinite;
+}
+
+/* Enquanto carrega o botao fica desabilitado, mas mantemos o brilho cheio. */
+.play-button[disabled] {
+  opacity: 1;
+}
+
+@keyframes player-spinner-rotate {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.utility-button {
+  height: 44px;
+  opacity: 0.72;
+  position: absolute;
+  top: calc(100% + 4px);
+  width: 44px;
+
+  ion-icon {
+    font-size: 24px;
+  }
+}
+
+.utility-button--favorite {
+  left: 0;
+}
+
+.utility-button--playlist {
+  right: 0;
+}
+
+.player-progress-row {
+  align-items: center;
+  display: flex;
+  gap: 14px;
+  justify-content: center;
+  width: 100%;
+}
+
+.player-progress {
+  align-items: center;
+  display: grid;
+  gap: clamp(18px, 2.4vw, 34px);
+  grid-template-columns: minmax(44px, max-content) minmax(220px, 1fr) minmax(44px, max-content);
+  width: 100%;
+}
+
+/* ===== Controle de volume ===== */
+.volume-control {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.volume-button {
+  // Sem outline nem box: so o icone, com brilho no hover.
+  --background: transparent;
+  --background-hover: transparent;
+  --background-activated: transparent;
+  --background-focused: transparent;
+  --box-shadow: none;
+  --border-radius: 0;
+  --color: #ffffff;
+  --padding-start: 0;
+  --padding-end: 0;
+  --ripple-color: transparent;
+  height: 40px;
+  margin: 0;
+  width: 40px;
+}
+
+.volume-button__icon {
+  width: 24px;
+  height: 24px;
+  filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.35));
+  transition: filter 0.2s ease, transform 0.2s ease;
+}
+
+.volume-button:hover .volume-button__icon {
+  filter:
+    drop-shadow(0 0 6px rgba(255, 255, 255, 0.85))
+    drop-shadow(0 0 18px rgba(255, 255, 255, 0.4));
+  transform: scale(1.12);
+}
+
+.volume-popover {
+  position: absolute;
+  bottom: calc(100% + 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 16px 12px;
+  border-radius: 16px;
+  background: rgba(14, 18, 17, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 16px 42px rgba(0, 0, 0, 0.42);
+  backdrop-filter: blur(14px);
+  z-index: 5;
+}
+
+.volume-slider {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  width: 26px;
+  height: 130px;
+  cursor: pointer;
+  touch-action: none;
+}
+
+.volume-slider__track {
+  position: relative;
+  width: 6px;
+  height: 100%;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.volume-slider__fill {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  border-radius: 999px;
+  background: #ffffff;
+  filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.5));
+}
+
+.volume-slider__knob {
+  position: absolute;
+  left: 50%;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #ffffff;
+  transform: translate(-50%, 50%);
+  box-shadow:
+    0 0 10px rgba(255, 255, 255, 0.94),
+    0 0 28px rgba(255, 255, 255, 0.45);
+}
+
+.player-progress span {
+  color: rgba(255, 255, 255, 0.86);
+  font-size: clamp(1rem, 1.8vw, 2.1rem);
+  font-weight: 700;
+  text-align: center;
+  text-shadow:
+    0 0 7px rgba(255, 255, 255, 0.82),
+    0 0 22px rgba(255, 255, 255, 0.32);
+  white-space: nowrap;
+}
+
+ion-range {
+  --bar-background: rgba(255, 255, 255, 0.18);
+  --bar-background-active: #ffffff;
+  --bar-border-radius: 999px;
+  --bar-height: clamp(5px, 0.7vw, 9px);
+  --knob-background: #ffffff;
+  --knob-box-shadow:
+    0 0 10px rgba(255, 255, 255, 0.94),
+    0 0 32px rgba(255, 255, 255, 0.45);
+  --knob-size: clamp(22px, 2.7vw, 34px);
+  filter:
+    drop-shadow(0 0 7px rgba(255, 255, 255, 0.72))
+    drop-shadow(0 0 22px rgba(255, 255, 255, 0.3));
+  padding-inline: 0;
+  width: 100%;
+}
+
+.player-meta {
+  display: grid;
+  gap: 4px;
+  justify-items: center;
+  max-width: min(860px, 86vw);
+  text-align: center;
+}
+
+.player-meta h1,
+.player-meta p,
+.player-meta span {
+  margin: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.player-meta h1 {
+  font-size: clamp(1.15rem, 2vw, 2rem);
+  font-weight: 700;
+}
+
+.player-meta p,
+.player-meta span {
+  color: rgba(255, 255, 255, 0.56);
+  font-size: clamp(0.8rem, 1vw, 1rem);
+}
+
+.empty-player {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  justify-content: center;
+  text-align: center;
+}
+
+.empty-player > ion-icon {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 3rem;
+}
+
+@media (max-width: 720px) {
+  .player-shell {
+    padding: 36px 24px;
+  }
+
+  .edge-button {
+    height: 38px;
+    width: 38px;
+  }
+
+  .edge-button--left {
+    left: 10px;
+  }
+
+  .edge-button--right {
+    right: 10px;
+  }
+
+  .player-panel {
+    gap: 30px;
+    width: 100%;
+  }
+
+  .player-actions {
+    grid-template-columns: 64px 102px 64px;
+    width: min(300px, 100%);
+  }
+
+  .skip-button {
+    height: 64px;
+    width: 64px;
+  }
+
+  .play-button {
+    height: 96px;
+    width: 96px;
+  }
+
+  .player-progress {
+    gap: 10px;
+    grid-template-columns: 40px minmax(0, 1fr) 40px;
+  }
+
+  .player-progress span {
+    font-size: 0.9rem;
+    font-weight: 600;
+  }
+}
+
+/* =========================================================
+   Modo embedded — versao compacta docada na pagina de busca.
+   So muda densidade/encaixe; nada de comportamento.
+   ========================================================= */
+:host(.embedded) {
+  display: block;
+  background: transparent;
+}
+
+:host(.embedded) .player-shell {
+  background: transparent;
+  min-height: auto;
+  padding: 18px 22px;
+  // Permite o popover de volume aparecer acima sem ser cortado.
+  overflow: visible;
+}
+
+:host(.embedded) .edge-button {
+  display: none;
+}
+
+:host(.embedded) .player-panel {
+  gap: 10px;
+  width: 100%;
+}
+
+:host(.embedded) .player-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: auto;
+}
+
+:host(.embedded) .skip-button {
+  height: 44px;
+  width: 44px;
+
+  ion-icon {
+    font-size: 26px;
+  }
+}
+
+:host(.embedded) .play-button {
+  height: 60px;
+  width: 60px;
+
+  ion-icon {
+    font-size: 30px;
+  }
+}
+
+/* Coracao e + entram na mesma linha dos controles, com o mesmo tamanho. */
+:host(.embedded) .utility-button {
+  position: static;
+  top: auto;
+  height: 44px;
+  width: 44px;
+  opacity: 0.9;
+
+  ion-icon {
+    font-size: 26px;
+  }
+}
+
+:host(.embedded) .utility-button--favorite {
+  order: -1;
+  left: auto;
+}
+
+:host(.embedded) .utility-button--playlist {
+  order: 1;
+  right: auto;
+}
+
+:host(.embedded) .player-progress {
+  gap: 12px;
+  grid-template-columns: 40px minmax(0, 1fr) 40px;
+  width: 50vw;
+  justify-self: center;
+}
+
+:host(.embedded) .player-progress span {
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+:host(.embedded) ion-range {
+  --bar-height: 5px;
+  --knob-size: 18px;
+}
+
+:host(.embedded) .player-meta {
+  gap: 2px;
+}
+
+:host(.embedded) .player-meta h1 {
+  font-size: 1.05rem;
+}
+
+:host(.embedded) .player-meta p {
+  font-size: 0.8rem;
+}
+
+/* So o artista embaixo do titulo; album/genero fica oculto no modo embedded. */
+:host(.embedded) .player-meta span {
+  display: none;
+}

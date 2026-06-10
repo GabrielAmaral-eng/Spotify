@@ -89,7 +89,7 @@ export const addTrackToPlaylist = async (request: Request, response: Response): 
   const { track } = addTrackSchema.parse(request.body);
   const playlist = await libraryService.addTrackToPlaylist(accessToken, id, {
     id: track.id,
-    source: 'spotify',
+    source: 'audius',
     title: track.title,
     artist: track.artist,
     album: track.album,
@@ -124,7 +124,7 @@ export const favoriteTrack = async (request: Request, response: Response): Promi
   const track = favoriteTrackSchema.parse(request.body);
   const favorite = await libraryService.favoriteTrack(accessToken, userId, {
     id: track.id,
-    source: 'spotify',
+    source: 'audius',
     title: track.title,
     artist: track.artist,
     album: track.album,

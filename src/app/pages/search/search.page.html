@@ -1,4 +1,4 @@
-<ion-content class="ion-padding">
+<ion-content class="ion-padding" [scrollY]="false">
   <!-- Top Bar with Logo, Search Bar, and Library Button -->
   <div class="search-top-bar">
     <!-- Logo and Melodix Text -->
@@ -45,42 +45,75 @@
       tabindex="0"
     >
       <div class="wheel-arc-circle"></div>
+
+      <!-- Placeholder quando ainda nao ha musicas: estilizado como a selecionada -->
       <div
-        *ngFor="let song of mockSongs; let i = index; trackBy: trackBySongId"
-        class="wheel-item"
-        [class.selected]="i === selectedSongIndex"
-        [style.transform]="getItemTransform(getOffsetForSong(i))"
-        [style.opacity]="getItemOpacity(getOffsetForSong(i))"
+        *ngIf="wheelTracks.length === 0"
+        class="wheel-item selected"
+        [style.transform]="getItemTransform(0)"
       >
         <div class="wheel-dot"></div>
         <div class="wheel-text">
-          <div class="wheel-title">{{ song.title }}</div>
+          <div class="wheel-title">
+            <span class="wheel-title__text" appWheelMarquee>Nenhuma música selecionada</span>
+          </div>
+        </div>
+      </div>
+
+      <div
+        *ngFor="let song of wheelTracks; let i = index; trackBy: trackByTrackId"
+        class="wheel-item"
+        [class.selected]="i === selectedSongIndex"
+        [attr.data-wheel-index]="i"
+        [style.transform]="getItemTransform(getOffsetForSong(i))"
+        [style.opacity]="getItemOpacity(getOffsetForSong(i))"
+        [style.pointer-events]="getItemPointerEvents(getOffsetForSong(i))"
+      >
+        <div class="wheel-dot"></div>
+        <div class="wheel-text">
+          <div class="wheel-title">
+            <span class="wheel-title__text" appWheelMarquee>{{ song.title }}</span>
+          </div>
           <div class="wheel-artist">{{ song.artist }}</div>
         </div>
       </div>
     </div>
+
+    <!-- Visualizador de áudio — só aparece quando há música tocando -->
+    <app-audio-visualizer
+      *ngIf="isPlaying$ | async"
+      class="search-visualizer"
+    ></app-audio-visualizer>
   </div>
 
-  <ion-list *ngIf="loading">
-    <ion-item lines="none" *ngFor="let skeleton of [1, 2, 3, 4]">
-      <ion-thumbnail slot="start">
-        <ion-skeleton-text animated></ion-skeleton-text>
-      </ion-thumbnail>
-      <ion-label>
-        <h3><ion-skeleton-text animated style="width: 70%"></ion-skeleton-text></h3>
-        <p><ion-skeleton-text animated style="width: 45%"></ion-skeleton-text></p>
-      </ion-label>
-    </ion-item>
-  </ion-list>
+  <!-- Lista de resultados: rola por conta propria (a pagina fica travada). -->
+  <div class="search-results" *ngIf="loading || results.length">
+    <ion-list *ngIf="loading">
+      <ion-item lines="none" *ngFor="let skeleton of [1, 2, 3, 4]">
+        <ion-thumbnail slot="start">
+          <ion-skeleton-text animated></ion-skeleton-text>
+        </ion-thumbnail>
+        <ion-label>
+          <h3><ion-skeleton-text animated style="width: 70%"></ion-skeleton-text></h3>
+          <p><ion-skeleton-text animated style="width: 45%"></ion-skeleton-text></p>
+        </ion-label>
+      </ion-item>
+    </ion-list>
 
-  <ng-container *ngIf="favoriteIds$ | async as favoriteIds">
-    <app-track-item
-      *ngFor="let track of results; trackBy: trackByTrackId"
-      [track]="track"
-      [favorite]="favoriteIds.has(track.id)"
-      (playTrack)="play($event)"
-      (toggleFavorite)="toggleFavorite($event)"
-      (addToPlaylist)="addToPlaylist($event)"
-    ></app-track-item>
-  </ng-container>
+    <ng-container *ngIf="favoriteIds$ | async as favoriteIds">
+      <app-track-item
+        *ngFor="let track of results; trackBy: trackByTrackId"
+        [track]="track"
+        [favorite]="favoriteIds.has(track.id)"
+        (playTrack)="play($event)"
+        (toggleFavorite)="toggleFavorite($event)"
+        (addToPlaylist)="addToPlaylist($event)"
+      ></app-track-item>
+    </ng-container>
+  </div>
+
+  <!-- Player docado — some durante a busca e volta ao limpar a barra. -->
+  <div class="search-player-dock" *ngIf="(currentTrack$ | async) && !query">
+    <app-player [embedded]="true"></app-player>
+  </div>
 </ion-content>

@@ -1,7 +1,8 @@
 import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { Router } from '@angular/router';
 import { ToastController } from '@ionic/angular';
-import { Subject } from 'rxjs';
+import { Subject, of } from 'rxjs';
 
 import { AppComponent } from './app.component';
 import { PlayerService } from './core/services/player.service';
@@ -16,7 +17,15 @@ describe('AppComponent', () => {
         {
           provide: PlayerService,
           useValue: {
-            playbackMessage$
+            playbackMessage$,
+            currentTrack$: of(null)
+          }
+        },
+        {
+          provide: Router,
+          useValue: {
+            events: new Subject(),
+            url: '/'
           }
         },
         {

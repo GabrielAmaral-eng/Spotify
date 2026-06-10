@@ -1,6 +1,6 @@
 export interface Track {
   id: string;
-  source: 'spotify';
+  source: 'audius';
   title: string;
   artist: string;
   album: string;

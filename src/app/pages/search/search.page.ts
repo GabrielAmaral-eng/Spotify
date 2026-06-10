@@ -13,7 +13,7 @@ import {
 } from 'rxjs';
 import { PlayerService } from '../../core/services/player.service';
 import { PlaylistService } from '../../core/services/playlist.service';
-import { SpotifyService } from '../../core/services/spotify.service';
+import { AudiusService } from '../../core/services/audius.service';
 import { Track } from '../../shared/models/track.model';
 
 @Component({
@@ -23,7 +23,7 @@ import { Track } from '../../shared/models/track.model';
   standalone: false
 })
 export class SearchPage implements OnInit, OnDestroy {
-  private readonly spotifyService = inject(SpotifyService);
+  private readonly audiusService = inject(AudiusService);
   private readonly playerService = inject(PlayerService);
   private readonly playlistService = inject(PlaylistService);
   private readonly actionSheetController = inject(ActionSheetController);
@@ -33,6 +33,8 @@ export class SearchPage implements OnInit, OnDestroy {
   private readonly destroy$ = new Subject<void>();
 
   readonly favoriteIds$ = this.playlistService.favoriteIds$;
+  readonly isPlaying$ = this.playerService.isPlaying$;
+  readonly currentTrack$ = this.playerService.currentTrack$;
   results: Track[] = [];
   query = '';
   loading = false;
@@ -41,26 +43,17 @@ export class SearchPage implements OnInit, OnDestroy {
   /** Controla a visibilidade do painel de playlists */
   showPlaylists = false;
 
-  readonly mockSongs: ReadonlyArray<{ id: string; title: string; artist: string }> = [
-    { id: 'eclipse',     title: 'Eclipse dos Dias',     artist: 'Tessália'    },
-    { id: 'horizonte',   title: 'Horizonte de Neon',    artist: 'Vértice'     },
-    { id: 'coracao',     title: 'Coração de Fumaça',    artist: 'Lunário'     },
-    { id: 'alem',        title: 'Além do Silêncio',     artist: 'Aurora Vex'  },
-    { id: 'fragmentos',  title: 'Fragmentos do Amanhã', artist: 'Sideral'     },
-    { id: 'mares',       title: 'Marés Internas',       artist: 'Oceânica'    },
-    { id: 'ultima',      title: 'Última Estação',       artist: 'Subtérreo'   },
-    { id: 'luz',         title: 'Luz que Fica',         artist: 'Minimalista' },
-    { id: 'sombras',     title: 'Sombras de Cristal',   artist: 'Nebulosa'    },
-    { id: 'pulsar',      title: 'Pulsar do Vazio',      artist: 'Cassiopeia'  },
-    { id: 'ecos',        title: 'Ecos do Norte',        artist: 'Arcano'      },
-    { id: 'ressonancia', title: 'Ressonância Plena',    artist: 'Vértex'      },
-  ];
-  selectedSongIndex = 3;
+  /** Musicas da ultima pesquisa, exibidas na roda rolavel e infinita. */
+  wheelTracks: Track[] = [];
+  selectedSongIndex = 0;
+  private readonly wheelSelection$ = new Subject<void>();
   private lastWheelTime = 0;
   private wheelPointerActive = false;
   private wheelPointerId: number | null = null;
   private wheelPointerLastY = 0;
   private wheelPointerDelta = 0;
+  private wheelPointerTravel = 0;
+  private wheelPointerDownIndex: number | null = null;
   private readonly wheelPointerStep = 48;
 
   ngOnInit(): void {
@@ -82,7 +75,7 @@ export class SearchPage implements OnInit, OnDestroy {
           return of([]);
         }
 
-        return this.spotifyService.searchTracks(term).pipe(
+        return this.audiusService.searchTracks(term).pipe(
           catchError(() => {
             this.errorMessage = 'Não foi possível buscar músicas agora.';
             return of([]);
@@ -96,6 +89,21 @@ export class SearchPage implements OnInit, OnDestroy {
     ).subscribe((tracks) => {
       this.results = tracks;
     });
+
+    // Ao rolar a roda, toca a faixa central — so depois que a rolagem assenta,
+    // para nao recarregar o stream a cada tique do scroll.
+    this.wheelSelection$.pipe(
+      debounceTime(300),
+      takeUntil(this.destroy$)
+    ).subscribe(() => this.playWheelSelection());
+
+    // Botoes de voltar/avancar do player movem a roda (cima/baixo).
+    this.playerService.skipPrevious$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => this.selectPrev());
+    this.playerService.skipNext$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => this.selectNext());
   }
 
   ngOnDestroy(): void {
@@ -115,7 +123,38 @@ export class SearchPage implements OnInit, OnDestroy {
   }
 
   play(track: Track): void {
+    this.loadWheelFromResults(track);
     this.playerService.play(track);
+    this.clearSearch();
+  }
+
+  /**
+   * Guarda as sugestoes da pesquisa atual (no momento do clique) na roda e
+   * centraliza na faixa escolhida.
+   */
+  private loadWheelFromResults(selected: Track): void {
+    if (this.results.length === 0) {
+      return;
+    }
+
+    this.wheelTracks = [...this.results];
+    const index = this.wheelTracks.findIndex((track) => track.id === selected.id);
+    this.selectedSongIndex = index >= 0 ? index : 0;
+  }
+
+  /** Toca a faixa atualmente centralizada/destacada na roda. */
+  private playWheelSelection(): void {
+    const track = this.wheelTracks[this.selectedSongIndex];
+    if (track) {
+      this.playerService.play(track);
+    }
+  }
+
+  /** Limpa a barra de busca e os resultados ao selecionar uma musica. */
+  private clearSearch(): void {
+    this.query = '';
+    this.results = [];
+    this.searchTerms.next('');
   }
 
   toggleFavorite(track: Track): void {
@@ -167,12 +206,8 @@ export class SearchPage implements OnInit, OnDestroy {
     return track.id;
   }
 
-  trackBySongId(_index: number, song: { id: string }): string {
-    return song.id;
-  }
-
   getOffsetForSong(songIdx: number): number {
-    const length = this.mockSongs.length;
+    const length = this.wheelTracks.length;
     let offset = songIdx - this.selectedSongIndex;
     while (offset > length / 2) offset -= length;
     while (offset <= -length / 2) offset += length;
@@ -193,14 +228,46 @@ export class SearchPage implements OnInit, OnDestroy {
     return Math.max(0, 1 - (d / 3.2) ** 2);
   }
 
+  /** So faixas ainda visiveis (antes do fade completo) recebem clique. */
+  getItemPointerEvents(offset: number): 'auto' | 'none' {
+    return this.getItemOpacity(offset) > 0 ? 'auto' : 'none';
+  }
+
+  /** Seleciona ao clicar numa faixa visivel: a roda rola ate o centro e toca. */
+  private selectByClick(index: number): void {
+    if (index < 0 || index >= this.wheelTracks.length || index === this.selectedSongIndex) {
+      return;
+    }
+
+    this.selectedSongIndex = index;
+    this.wheelSelection$.next();
+  }
+
+  /** Descobre o indice da faixa sob o ponteiro a partir do data-attribute. */
+  private resolveWheelIndex(event: PointerEvent): number | null {
+    const item = (event.target as HTMLElement | null)?.closest<HTMLElement>('.wheel-item');
+    const raw = item?.dataset['wheelIndex'];
+
+    if (raw === undefined) {
+      return null;
+    }
+
+    const index = Number(raw);
+    return Number.isInteger(index) ? index : null;
+  }
+
   selectPrev(): void {
-    const length = this.mockSongs.length;
+    const length = this.wheelTracks.length;
+    if (length === 0) return;
     this.selectedSongIndex = (this.selectedSongIndex - 1 + length) % length;
+    this.wheelSelection$.next();
   }
 
   selectNext(): void {
-    const length = this.mockSongs.length;
+    const length = this.wheelTracks.length;
+    if (length === 0) return;
     this.selectedSongIndex = (this.selectedSongIndex + 1) % length;
+    this.wheelSelection$.next();
   }
 
   onWheel(event: WheelEvent): void {
@@ -224,6 +291,8 @@ export class SearchPage implements OnInit, OnDestroy {
     this.wheelPointerId = event.pointerId;
     this.wheelPointerLastY = event.clientY;
     this.wheelPointerDelta = 0;
+    this.wheelPointerTravel = 0;
+    this.wheelPointerDownIndex = this.resolveWheelIndex(event);
 
     const target = event.currentTarget as HTMLElement;
     target.focus({ preventScroll: true });
@@ -234,7 +303,9 @@ export class SearchPage implements OnInit, OnDestroy {
     if (!this.wheelPointerActive || event.pointerId !== this.wheelPointerId) return;
 
     event.preventDefault();
-    this.wheelPointerDelta += event.clientY - this.wheelPointerLastY;
+    const dy = event.clientY - this.wheelPointerLastY;
+    this.wheelPointerTravel += Math.abs(dy);
+    this.wheelPointerDelta += dy;
     this.wheelPointerLastY = event.clientY;
 
     while (Math.abs(this.wheelPointerDelta) >= this.wheelPointerStep) {
@@ -253,9 +324,17 @@ export class SearchPage implements OnInit, OnDestroy {
 
     const target = event.currentTarget as HTMLElement;
     target.releasePointerCapture?.(event.pointerId);
+
+    // Toque/clique sem arrasto = selecao direta: a roda rola ate a faixa.
+    if (this.wheelPointerTravel < 10 && this.wheelPointerDownIndex !== null) {
+      this.selectByClick(this.wheelPointerDownIndex);
+    }
+
     this.wheelPointerActive = false;
     this.wheelPointerId = null;
     this.wheelPointerDelta = 0;
+    this.wheelPointerTravel = 0;
+    this.wheelPointerDownIndex = null;
   }
 
   onWheelMouseEnter(event: MouseEvent): void {

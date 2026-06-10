@@ -1,0 +1,8 @@
+<div class="audio-wave" [class.paused]="!active" [class.live]="live" aria-hidden="true">
+  <span
+    #barEl
+    *ngFor="let bar of barList"
+    class="wave-bar"
+    [style.animation-delay]="delayFor(bar)"
+  ></span>
+</div>

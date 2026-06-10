@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import { z } from 'zod';
-import { spotifyService } from './spotify.service';
+import { audiusService } from './audius.service';
 
 const searchQuerySchema = z.object({
   q: z.string().trim().min(1)
@@ -12,14 +12,14 @@ const trackParamsSchema = z.object({
 
 export const searchTracks = async (request: Request, response: Response): Promise<void> => {
   const { q } = searchQuerySchema.parse(request.query);
-  const tracks = await spotifyService.searchTracks(q);
+  const tracks = await audiusService.searchTracks(q);
 
   response.json({ tracks });
 };
 
 export const getTrack = async (request: Request, response: Response): Promise<void> => {
   const { id } = trackParamsSchema.parse(request.params);
-  const track = await spotifyService.getTrack(id);
+  const track = await audiusService.getTrack(id);
 
   response.json({ track });
 };
