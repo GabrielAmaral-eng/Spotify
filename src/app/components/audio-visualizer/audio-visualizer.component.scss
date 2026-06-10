@@ -2,12 +2,18 @@
   display: flex;
   align-items: center;
   justify-content: center;
+
+  // Fonte única da verdade para largura/espaçamento das barras. O componente
+  // lê estes valores (getComputedStyle) para calcular quantas barras cabem em
+  // 85% da largura disponível — assim cálculo e visual nunca divergem.
+  --bar-width: 4px;
+  --bar-gap: 6px;
 }
 
 .audio-wave {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--bar-gap);
   height: 180px;
 
   // Glow branco luminoso, no mesmo padrão da página (drop-shadow branco)
@@ -15,8 +21,9 @@
 }
 
 .wave-bar {
-  width: 4px;
+  width: var(--bar-width);
   height: 100%;
+  flex: 0 0 auto;
   border-radius: 999px;
   transform-origin: center center;
 
@@ -51,4 +58,12 @@
   animation-play-state: paused;
   transform: scaleY(0.18);
   opacity: 0.45;
+}
+
+// Modo "live": o JS controla scaleY/opacity de cada barra a partir do espectro
+// real do áudio, então desligamos a animação CSS para não competir com ele.
+// Uma transição curta suaviza os saltos entre frames.
+.audio-wave.live .wave-bar {
+  animation: none;
+  transition: transform 0.07s ease-out, opacity 0.07s ease-out;
 }

@@ -13,6 +13,14 @@ export class PlayerService {
   private readonly skipPreviousSubject = new Subject<void>();
   private readonly skipNextSubject = new Subject<void>();
   private readonly volumeSubject = new BehaviorSubject<number>(50);
+  private readonly analyserSubject = new BehaviorSubject<AnalyserNode | null>(null);
+
+  // Grafo Web Audio para o visualizador real. Montado uma unica vez, no
+  // primeiro play (dentro do gesto do usuario, respeitando o autoplay policy).
+  private audioContext: AudioContext | null = null;
+  private sourceNode: MediaElementAudioSourceNode | null = null;
+  private analyserNode: AnalyserNode | null = null;
+  private audioGraphInitialized = false;
 
   readonly currentTrack$: Observable<Track | null> = this.currentTrackSubject.asObservable();
   readonly isPlaying$: Observable<boolean> = this.isPlayingSubject.asObservable();
@@ -24,8 +32,18 @@ export class PlayerService {
   readonly skipNext$: Observable<void> = this.skipNextSubject.asObservable();
   /** Volume da reproducao em porcentagem (0–100), padrao 50%. */
   readonly volume$: Observable<number> = this.volumeSubject.asObservable();
+  /**
+   * AnalyserNode do Web Audio para o visualizador. Emite o no quando o grafo
+   * e montado com sucesso; permanece null se o Web Audio nao estiver
+   * disponivel (ai o visualizador cai no fallback animado por CSS).
+   */
+  readonly analyser$: Observable<AnalyserNode | null> = this.analyserSubject.asObservable();
 
   constructor() {
+    // Necessario para o AnalyserNode ler amostras de um stream de outra origem
+    // (Audius). Sem isso o elemento fica "tainted" e o analyser le so zeros.
+    this.audio.crossOrigin = 'anonymous';
+
     this.audio.addEventListener('timeupdate', () => this.updateProgress());
     this.audio.addEventListener('ended', () => {
       this.isPlayingSubject.next(false);
@@ -64,6 +82,47 @@ export class PlayerService {
     this.startPlayback(track);
   }
 
+  /**
+   * Monta (uma unica vez) o grafo audio->analyser->saida e o mantem resumido.
+   * Deve ser chamado dentro de um gesto do usuario. Em qualquer falha (Web
+   * Audio indisponivel, elemento sem CORS, etc.) o analyser fica null e o
+   * visualizador usa o fallback animado por CSS.
+   */
+  private ensureAudioGraph(): void {
+    if (!this.audioGraphInitialized) {
+      this.audioGraphInitialized = true;
+      try {
+        const Ctor =
+          window.AudioContext ??
+          (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+
+        if (Ctor) {
+          this.audioContext = new Ctor();
+          // createMediaElementSource so pode ser chamado uma vez por elemento;
+          // por isso este metodo e idempotente (guarda audioGraphInitialized).
+          this.sourceNode = this.audioContext.createMediaElementSource(this.audio);
+          this.analyserNode = this.audioContext.createAnalyser();
+          this.analyserNode.fftSize = 64;
+          this.analyserNode.smoothingTimeConstant = 0.8;
+          this.sourceNode.connect(this.analyserNode);
+          this.analyserNode.connect(this.audioContext.destination);
+          this.analyserSubject.next(this.analyserNode);
+        }
+      } catch (error: unknown) {
+        console.warn('Visualizador real indisponivel; usando fallback CSS.', error);
+        this.audioContext = null;
+        this.sourceNode = null;
+        this.analyserNode = null;
+        this.analyserSubject.next(null);
+      }
+    }
+
+    // O contexto nasce "suspended" ate o gesto do usuario; retomamos aqui.
+    if (this.audioContext?.state === 'suspended') {
+      void this.audioContext.resume();
+    }
+  }
+
   private startPlayback(track: Track): void {
     if (!track.previewUrl) {
       this.clearAudio();
@@ -74,6 +133,7 @@ export class PlayerService {
       return;
     }
 
+    this.ensureAudioGraph();
     this.audio.src = track.previewUrl;
 
     // Estado otimista: ja indicamos "carregando + tocando" no ato da selecao,
@@ -109,6 +169,7 @@ export class PlayerService {
     }
 
     if (this.audio.paused) {
+      this.ensureAudioGraph();
       this.audio.play()
         .then(() => this.isPlayingSubject.next(true))
         .catch((error: unknown) => this.handlePlaybackError(error));
