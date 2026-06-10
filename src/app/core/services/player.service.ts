@@ -31,15 +31,15 @@ export class PlayerService {
       this.currentTrackSubject.next(track);
     }
 
-    this.playPreview(track);
+    this.startPlayback(track);
   }
 
-  private playPreview(track: Track): void {
+  private startPlayback(track: Track): void {
     if (!track.previewUrl) {
-      this.clearPreview();
+      this.clearAudio();
       this.isPlayingSubject.next(false);
       this.progressSubject.next(0);
-      this.playbackMessageSubject.next('Preview indisponivel para esta musica.');
+      this.playbackMessageSubject.next('Esta musica nao esta disponivel para reproducao.');
       return;
     }
 
@@ -47,11 +47,7 @@ export class PlayerService {
 
     this.audio.play()
       .then(() => this.isPlayingSubject.next(true))
-      .catch((error: unknown) => {
-        console.error('Falha ao reproduzir preview:', error);
-        this.isPlayingSubject.next(false);
-        this.playbackMessageSubject.next('Nao foi possivel reproduzir o preview desta musica.');
-      });
+      .catch((error: unknown) => this.handlePlaybackError(error));
   }
 
   pause(): void {
@@ -67,9 +63,7 @@ export class PlayerService {
     if (this.audio.paused) {
       this.audio.play()
         .then(() => this.isPlayingSubject.next(true))
-        .catch((error: unknown) => {
-          console.error('Falha ao retomar preview:', error);
-        });
+        .catch((error: unknown) => this.handlePlaybackError(error));
       return;
     }
 
@@ -94,8 +88,21 @@ export class PlayerService {
     this.progressSubject.next(Math.min(100, Math.max(0, progress)));
   }
 
-  private clearPreview(): void {
+  private clearAudio(): void {
     this.audio.removeAttribute('src');
     this.audio.load();
+  }
+
+  private handlePlaybackError(error: unknown): void {
+    // O play() rejeita com AbortError quando a reproducao e interrompida por
+    // uma nova faixa ou por um pause antes de o audio terminar de carregar.
+    // Isso nao e uma falha real, entao ignoramos silenciosamente.
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      return;
+    }
+
+    console.error('Falha ao reproduzir a musica:', error);
+    this.isPlayingSubject.next(false);
+    this.playbackMessageSubject.next('Nao foi possivel reproduzir esta musica.');
   }
 }
