@@ -10,6 +10,7 @@ import {
   inject,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { animate, style, transition, trigger } from '@angular/animations';
 import { Subscription, combineLatest } from 'rxjs';
 import { PlayerService } from '../../core/services/player.service';
 
@@ -19,6 +20,19 @@ import { PlayerService } from '../../core/services/player.service';
   styleUrls: ['./audio-visualizer.component.scss'],
   standalone: true,
   imports: [CommonModule],
+  // Fade in ao aparecer e fade out ao desaparecer, 0.5s ease-in-out.
+  animations: [
+    trigger('fade', [
+      transition(':enter', [
+        style({ opacity: 0 }),
+        animate('500ms ease-in-out', style({ opacity: 1 })),
+      ]),
+      transition(':leave', [
+        animate('500ms ease-in-out', style({ opacity: 0 })),
+      ]),
+    ]),
+  ],
+  host: { '[@fade]': '' },
 })
 export class AudioVisualizerComponent implements AfterViewInit, OnDestroy {
   /**
