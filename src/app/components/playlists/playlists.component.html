@@ -64,3 +64,56 @@
     </form>
   </div>
 </div>
+
+<!-- Menu dropdown de opções da playlist (3 pontos) — elemento HTML próprio -->
+<div class="options-backdrop" *ngIf="showOptionsPopup" (click)="closePlaylistOptions()">
+  <div
+    class="options-menu"
+    [style.top.px]="optionsTop"
+    [style.right.px]="optionsRight"
+    (click)="$event.stopPropagation()"
+  >
+    <span class="options-menu-title">{{ optionsPlaylist?.name }}</span>
+
+    <div class="options-list">
+      <button type="button" class="options-item" (click)="onOptionRename()">
+        <ion-icon name="pencil-outline" class="options-item-icon"></ion-icon>
+        <span class="options-item-label">Renomear</span>
+      </button>
+
+      <button type="button" class="options-item" (click)="onOptionManageTracks()">
+        <ion-icon name="list-outline" class="options-item-icon"></ion-icon>
+        <span class="options-item-label">Gerenciar músicas</span>
+      </button>
+
+      <button type="button" class="options-item options-item--danger" (click)="onOptionDelete()">
+        <ion-icon name="trash-outline" class="options-item-icon"></ion-icon>
+        <span class="options-item-label">Excluir playlist</span>
+      </button>
+
+      <button type="button" class="options-item options-item--cancel" (click)="closePlaylistOptions()">
+        <ion-icon name="close-outline" class="options-item-icon"></ion-icon>
+        <span class="options-item-label">Cancelar</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Pop-up de confirmação de exclusão de playlist — elemento HTML próprio -->
+<div class="delete-overlay" *ngIf="showDeletePopup" (click)="cancelDeletePlaylist()">
+  <div class="delete-card" (click)="$event.stopPropagation()">
+    <h2 class="delete-title">Excluir playlist</h2>
+    <p class="delete-message">
+      Tem certeza que deseja excluir "{{ deletePlaylistTarget?.name }}"? Esta ação não pode ser desfeita.
+    </p>
+
+    <div class="delete-actions">
+      <button type="button" class="delete-btn delete-btn--confirm" (click)="confirmDeletePlaylist()">
+        Excluir
+      </button>
+      <button type="button" class="delete-btn delete-btn--cancel" (click)="cancelDeletePlaylist()">
+        Cancelar
+      </button>
+    </div>
+  </div>
+</div>

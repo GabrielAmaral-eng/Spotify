@@ -24,7 +24,7 @@
         class="library-btn"
         [class.active]="showPlaylists"
         aria-label="Abrir biblioteca"
-        (click)="togglePlaylists()"
+        (click)="togglePlaylists($event)"
       >
         <img src="assets/icon/Library.svg" alt="Library" class="library-icon" />
       </ion-button>
@@ -41,7 +41,11 @@
   </div>
 
   <!-- Painel de Playlists -->
-  <app-playlists [open]="showPlaylists" (selectPlaylist)="onSelectPlaylist($event)"></app-playlists>
+  <app-playlists
+    [open]="showPlaylists"
+    (selectPlaylist)="onSelectPlaylist($event)"
+    (requestClose)="showPlaylists = false"
+  ></app-playlists>
 
   <ion-note color="danger" *ngIf="errorMessage">{{ errorMessage }}</ion-note>
 

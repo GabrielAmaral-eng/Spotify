@@ -117,7 +117,10 @@ export class SearchPage implements OnInit, OnDestroy {
   }
 
   /** Abre ou fecha o painel de playlists */
-  togglePlaylists(): void {
+  togglePlaylists(event: Event): void {
+    // Impede que o clique no botão chegue ao listener de "clicar fora" do
+    // painel, que senão fecharia o painel no mesmo clique que o abre/fecha.
+    event.stopPropagation();
     this.showPlaylists = !this.showPlaylists;
   }
 

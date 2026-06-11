@@ -308,3 +308,214 @@
     filter: drop-shadow(0 0 10px rgba(255, 80, 80, 0.3));
   }
 }
+
+/* ============================================================
+ * Menu dropdown de opções da playlist (3 pontos)
+ * Mesma linguagem visual (vidro-fosco verde, outline, glow),
+ * porém compacto e ancorado ao botão dos 3 pontos.
+ * ============================================================ */
+.options-backdrop {
+  /* Camada transparente apenas para fechar o menu ao clicar fora */
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+}
+
+.options-menu {
+  position: fixed;
+  box-sizing: border-box;
+  width: 210px;
+  padding: 8px;
+  background: rgba(10, 30, 24, 0.85);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  border-radius: 14px;
+  box-shadow:
+    0 0 14px rgba(255, 255, 255, 0.16),
+    0 8px 24px rgba(0, 0, 0, 0.5);
+  animation: optionsMenuIn 0.16s ease-out;
+}
+
+.options-menu-title {
+  display: block;
+  padding: 4px 8px 8px;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.options-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.options-item {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 9px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease, filter 0.18s ease, transform 0.15s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #ffffff;
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+.options-item-icon {
+  flex-shrink: 0;
+  font-size: 17px;
+}
+
+.options-item-label {
+  flex: 1;
+  min-width: 0;
+}
+
+/* "Excluir playlist" — vermelho (destrutivo) */
+.options-item--danger {
+  color: #ff8a8a;
+
+  &:hover {
+    background: rgba(255, 80, 80, 0.18);
+    color: #ffaaaa;
+    filter: drop-shadow(0 0 8px rgba(255, 80, 80, 0.25));
+  }
+}
+
+/* "Cancelar" — neutro e discreto */
+.options-item--cancel {
+  color: rgba(255, 255, 255, 0.5);
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.8);
+  }
+}
+
+@keyframes optionsMenuIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ============================================================
+ * Pop-up de confirmação de exclusão de playlist
+ * Mesmo card do pop-up de criar (vidro-fosco, outline, glow).
+ * ============================================================ */
+.delete-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.delete-card {
+  box-sizing: border-box;
+  width: 33vw;
+  max-width: 33vw;
+  padding: 24px 20px 16px;
+  background: rgba(10, 30, 24, 0.72);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1.5px solid rgba(255, 255, 255, 0.85);
+  border-radius: 20px;
+  box-shadow:
+    0 0 18px rgba(255, 255, 255, 0.18),
+    0 0 48px rgba(255, 255, 255, 0.07),
+    0 8px 32px rgba(0, 0, 0, 0.45);
+}
+
+.delete-title {
+  margin: 0;
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.5));
+}
+
+.delete-message {
+  margin: 12px 0 0;
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.delete-actions {
+  display: flex;
+  flex-direction: row;
+  gap: 15px;
+  margin-top: 22px;
+}
+
+.delete-btn {
+  box-sizing: border-box;
+  flex: 1;
+  padding: 15px;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-transform: none;
+  transition: filter 0.2s ease, transform 0.15s ease, background 0.2s ease, color 0.2s ease;
+
+  &:active {
+    transform: scale(0.97);
+  }
+}
+
+/* "Excluir" — vermelho (destrutivo) */
+.delete-btn--confirm {
+  background: rgba(255, 80, 80, 0.15);
+  border: 1px solid rgba(255, 80, 80, 0.3);
+  color: #ff8a8a;
+
+  &:hover {
+    background: rgba(255, 80, 80, 0.25);
+    color: #ffaaaa;
+    filter: drop-shadow(0 0 10px rgba(255, 80, 80, 0.3));
+  }
+}
+
+/* "Cancelar" — neutro/branco */
+.delete-btn--cancel {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.75);
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+  }
+}
