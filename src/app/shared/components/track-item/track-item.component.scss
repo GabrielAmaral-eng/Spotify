@@ -82,6 +82,29 @@ span {
 .track-item__actions {
   display: flex;
   flex-shrink: 0;
+  gap: 4px;
+}
+
+.track-item__actions ion-button {
+  --color: #ffffff !important;
+  color: #ffffff !important;
+  opacity: 0.75;
+  margin: 0;
+  --padding-start: 6px;
+  --padding-end: 6px;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+
+  &:hover {
+    opacity: 1;
+    transform: scale(1.18);
+  }
+
+  &.is-favorite {
+    --color: #ff453a !important;
+    color: #ff453a !important;
+    opacity: 1;
+    filter: drop-shadow(0 0 5px rgba(255, 69, 58, 0.5));
+  }
 }
 
 .track-item__lock {
@@ -91,10 +114,4 @@ span {
 
 .track-item--locked {
   opacity: 0.58;
-}
-
-ion-button {
-  --color: var(--ion-color-light);
-  --padding-end: 6px;
-  --padding-start: 6px;
 }

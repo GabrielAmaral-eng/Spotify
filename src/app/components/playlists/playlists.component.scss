@@ -99,3 +99,53 @@
   font-size: 11px;
   color: rgba(255, 255, 255, 0.5);
 }
+
+.create-btn {
+  border: 1px dashed rgba(255, 255, 255, 0.25);
+  margin: 0 16px 8px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  justify-content: center;
+  padding: 12px;
+  
+  &:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.45);
+  }
+}
+
+.create-icon-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+}
+
+.create-icon {
+  font-size: 16px;
+  color: #ffffff;
+}
+
+.create-text {
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.inner-divider {
+  margin: 4px 16px 8px;
+}
+
+.empty-state {
+  display: flex;
+  justify-content: center;
+  padding: 24px 16px;
+  text-align: center;
+}
+
+.empty-text {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.4);
+}

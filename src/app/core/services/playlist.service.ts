@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { BehaviorSubject, Observable, map, tap } from 'rxjs';
+import { BehaviorSubject, Observable, map, tap, of, switchMap } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { Playlist } from '../../shared/models/playlist.model';
 import { Track } from '../../shared/models/track.model';
@@ -126,6 +126,26 @@ export class PlaylistService {
       tap((favorite) => {
         const withoutTrack = this.favoritesSubject.value.filter((item) => item.id !== favorite.id);
         this.favoritesSubject.next([favorite, ...withoutTrack]);
+      }),
+      switchMap((favorite) => {
+        const likedPlaylist = this.playlistsSubject.value.find(
+          (p) => p.name.toLowerCase() === 'músicas curtidas'
+        );
+
+        if (likedPlaylist) {
+          const hasTrack = likedPlaylist.tracks.some((t) => t.id === track.id);
+          if (hasTrack) {
+            return of(favorite);
+          }
+          return this.addTrackToPlaylist(likedPlaylist.id, track).pipe(
+            map(() => favorite)
+          );
+        } else {
+          return this.createPlaylist('Músicas curtidas').pipe(
+            switchMap((newPlaylist) => this.addTrackToPlaylist(newPlaylist.id, track)),
+            map(() => favorite)
+          );
+        }
       })
     );
   }
@@ -135,6 +155,19 @@ export class PlaylistService {
       tap(() => {
         const favorites = this.favoritesSubject.value.filter((track) => track.id !== trackId);
         this.favoritesSubject.next(favorites);
+      }),
+      switchMap(() => {
+        const likedPlaylist = this.playlistsSubject.value.find(
+          (p) => p.name.toLowerCase() === 'músicas curtidas'
+        );
+
+        if (likedPlaylist) {
+          const hasTrack = likedPlaylist.tracks.some((t) => t.id === trackId);
+          if (hasTrack) {
+            return this.removeTrackFromPlaylist(likedPlaylist.id, trackId);
+          }
+        }
+        return of(undefined);
       })
     );
   }

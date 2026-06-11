@@ -17,19 +17,31 @@
       (ionInput)="onSearch($event)"
     ></ion-searchbar>
 
-    <!-- Library Button — toggle do painel de playlists -->
-    <ion-button
-      class="library-btn"
-      [class.active]="showPlaylists"
-      aria-label="Abrir biblioteca"
-      (click)="togglePlaylists()"
-    >
-      <img src="assets/icon/Library.svg" alt="Library" class="library-icon" />
-    </ion-button>
+    <!-- Header Actions (Playlists + Logout) -->
+    <div class="header-actions">
+      <!-- Library Button — toggle do painel de playlists -->
+      <ion-button
+        class="library-btn"
+        [class.active]="showPlaylists"
+        aria-label="Abrir biblioteca"
+        (click)="togglePlaylists()"
+      >
+        <img src="assets/icon/Library.svg" alt="Library" class="library-icon" />
+      </ion-button>
+
+      <!-- Logout Button -->
+      <ion-button
+        class="logout-btn"
+        aria-label="Sair"
+        (click)="logout()"
+      >
+        <ion-icon name="log-out-outline" class="logout-icon" aria-hidden="true"></ion-icon>
+      </ion-button>
+    </div>
   </div>
 
   <!-- Painel de Playlists -->
-  <app-playlists [open]="showPlaylists"></app-playlists>
+  <app-playlists [open]="showPlaylists" (selectPlaylist)="onSelectPlaylist($event)"></app-playlists>
 
   <ion-note color="danger" *ngIf="errorMessage">{{ errorMessage }}</ion-note>
 
