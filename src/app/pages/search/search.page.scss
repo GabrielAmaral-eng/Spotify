@@ -193,6 +193,10 @@ p {
   padding: 0 24px;
 }
 
+.search-playback-stack {
+  display: contents;
+}
+
 .song-wheel {
   --wheel-arc-size: 960px;
   --wheel-arc-radius: 480px;
@@ -342,6 +346,10 @@ ion-list {
 }
 
 @media (min-width: 641px) {
+  ion-content::part(scroll) {
+    overflow-y: hidden;
+  }
+
   .search-top-bar {
     padding: 0 28px;
   }
@@ -369,7 +377,7 @@ ion-list {
   ion-content {
     --padding-start: 0;
     --padding-end: 0;
-    --padding-bottom: 96px;
+    --padding-bottom: calc(env(safe-area-inset-bottom) + 20px);
   }
 
   .search-top-bar {
@@ -432,8 +440,11 @@ ion-list {
   }
 
   .idle-area {
-    min-height: calc(100dvh - 174px);
-    margin-top: 8px;
+    align-items: stretch;
+    flex-direction: column;
+    height: calc(100dvh - 144px);
+    min-height: 0;
+    margin-top: 0;
     overflow: hidden;
   }
 
@@ -444,9 +455,37 @@ ion-list {
 
     width: 100%;
     max-width: none;
-    height: min(560px, calc(100dvh - 190px));
-    min-height: 460px;
+    height: auto;
+    min-height: 250px;
+    flex: 1 1 auto;
     margin-left: 0;
+    overflow: hidden;
+  }
+
+  .search-playback-stack {
+    display: flex;
+    flex: 0 0 auto;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .search-visualizer {
+    flex: none;
+    height: 72px;
+    min-height: 72px;
+    padding: 0 14px;
+    width: 100%;
+  }
+
+  .search-player-dock {
+    background: rgba(8, 14, 11, 0.96);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 8px;
+    box-shadow: 0 -8px 28px rgba(0, 0, 0, 0.34);
+    flex: none;
+    position: static;
+    margin: 6px 12px 0;
+    width: calc(100% - 24px);
   }
 
   .wheel-item {

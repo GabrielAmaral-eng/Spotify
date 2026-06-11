@@ -1,4 +1,4 @@
-<ion-content class="ion-padding" [scrollY]="false">
+<ion-content class="ion-padding">
   <!-- Top Bar with Logo, Search Bar, and Library Button -->
   <div class="search-top-bar">
     <!-- Logo and Melodix Text -->
@@ -96,10 +96,16 @@
     </div>
 
     <!-- Visualizador de áudio — só aparece quando há música tocando -->
-    <app-audio-visualizer
-      *ngIf="isPlaying$ | async"
-      class="search-visualizer"
-    ></app-audio-visualizer>
+    <div class="search-playback-stack" *ngIf="currentTrack$ | async">
+      <app-audio-visualizer
+        *ngIf="isPlaying$ | async"
+        class="search-visualizer"
+      ></app-audio-visualizer>
+
+      <div class="search-player-dock">
+        <app-player [embedded]="true"></app-player>
+      </div>
+    </div>
   </div>
 
   <!-- Lista de resultados: rola por conta propria (a pagina fica travada). -->
@@ -134,7 +140,4 @@
   </div>
 
   <!-- Player docado — some durante a busca e volta ao limpar a barra. -->
-  <div class="search-player-dock" *ngIf="(currentTrack$ | async) && !query">
-    <app-player [embedded]="true"></app-player>
-  </div>
 </ion-content>

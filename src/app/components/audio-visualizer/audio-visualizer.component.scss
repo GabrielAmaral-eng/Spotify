@@ -67,3 +67,9 @@
   animation: none;
   transition: transform 0.07s ease-out, opacity 0.07s ease-out;
 }
+
+@media (max-width: 640px) {
+  .audio-wave {
+    height: 68px;
+  }
+}
