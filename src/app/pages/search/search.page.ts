@@ -61,6 +61,18 @@ export class SearchPage implements OnInit, OnDestroy {
   private wheelPointerDownIndex: number | null = null;
   private readonly wheelPointerStep = 48;
 
+  /**
+   * Posicao visual continua da roda (float). Persegue selectedSongIndex
+   * quadro a quadro para que os itens deslizem pelo arco — como uma roda
+   * girando — em vez de cortarem em linha reta (corda) ate o centro.
+   * A selecao em si continua governada por selectedSongIndex (inteiro).
+   */
+  private wheelDisplayIndex = 0;
+  private wheelAnimationFrame: number | null = null;
+  private wheelLastFrameTime = 0;
+  /** Constante de tempo do amortecimento (ms): menor = giro mais rapido. */
+  private readonly wheelTau = 100;
+
   ngOnInit(): void {
     this.playlistService.loadPlaylists().pipe(takeUntil(this.destroy$)).subscribe();
     this.playlistService.loadFavorites().pipe(takeUntil(this.destroy$)).subscribe();
@@ -112,6 +124,10 @@ export class SearchPage implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    if (this.wheelAnimationFrame !== null) {
+      cancelAnimationFrame(this.wheelAnimationFrame);
+      this.wheelAnimationFrame = null;
+    }
     this.destroy$.next();
     this.destroy$.complete();
   }
@@ -134,6 +150,7 @@ export class SearchPage implements OnInit, OnDestroy {
     this.clearSearch();
     this.wheelTracks = playlist.tracks || [];
     this.selectedSongIndex = 0;
+    this.snapWheel();
 
     if (this.wheelTracks.length > 0) {
       this.playWheelSelection();
@@ -166,6 +183,7 @@ export class SearchPage implements OnInit, OnDestroy {
     this.wheelTracks = [...this.results];
     const index = this.wheelTracks.findIndex((track) => track.id === selected.id);
     this.selectedSongIndex = index >= 0 ? index : 0;
+    this.snapWheel();
   }
 
   /** Toca a faixa atualmente centralizada/destacada na roda. */
@@ -241,7 +259,10 @@ export class SearchPage implements OnInit, OnDestroy {
 
   getOffsetForSong(songIdx: number): number {
     const length = this.wheelTracks.length;
-    let offset = songIdx - this.selectedSongIndex;
+    if (length === 0) return 0;
+    // Usa a posicao visual continua (nao o indice inteiro) para que os itens
+    // sejam recalculados sobre o arco a cada quadro durante o giro.
+    let offset = songIdx - this.wheelDisplayIndex;
     while (offset > length / 2) offset -= length;
     while (offset <= -length / 2) offset += length;
     return offset;
@@ -266,6 +287,62 @@ export class SearchPage implements OnInit, OnDestroy {
     return this.getItemOpacity(offset) > 0 ? 'auto' : 'none';
   }
 
+  /**
+   * Faz a roda deslizar suavemente ate a faixa selecionada, seguindo o arco.
+   * A cada quadro aproxima wheelDisplayIndex de selectedSongIndex; como os
+   * transforms sao recalculados pelo arco em getItemTransform, os itens
+   * acompanham a curva (sem o "puxao" para o centro da interpolacao em corda),
+   * tanto em um passo quanto em varios passos seguidos (scroll rapido/mobile).
+   */
+  private animateWheel(): void {
+    if (this.wheelAnimationFrame !== null) return;
+
+    const step = (timestamp: number): void => {
+      const length = this.wheelTracks.length;
+      if (length === 0) {
+        this.wheelAnimationFrame = null;
+        return;
+      }
+
+      const dt = this.wheelLastFrameTime
+        ? Math.min(64, timestamp - this.wheelLastFrameTime)
+        : 16;
+      this.wheelLastFrameTime = timestamp;
+
+      // Alvo: a copia de selectedSongIndex mais proxima da posicao atual, para
+      // girar pelo caminho mais curto mesmo cruzando a emenda da roda infinita.
+      let target = this.selectedSongIndex;
+      while (target - this.wheelDisplayIndex > length / 2) target -= length;
+      while (target - this.wheelDisplayIndex < -length / 2) target += length;
+
+      // Amortecimento exponencial independente da taxa de quadros (60/120Hz).
+      const k = 1 - Math.exp(-dt / this.wheelTau);
+      this.wheelDisplayIndex += (target - this.wheelDisplayIndex) * k;
+
+      if (Math.abs(target - this.wheelDisplayIndex) < 0.001) {
+        this.wheelDisplayIndex = ((target % length) + length) % length;
+        this.wheelAnimationFrame = null;
+        this.wheelLastFrameTime = 0;
+        return;
+      }
+
+      this.wheelAnimationFrame = requestAnimationFrame(step);
+    };
+
+    this.wheelLastFrameTime = 0;
+    this.wheelAnimationFrame = requestAnimationFrame(step);
+  }
+
+  /** Posiciona a roda instantaneamente (troca de lista/playlist, sem giro). */
+  private snapWheel(): void {
+    if (this.wheelAnimationFrame !== null) {
+      cancelAnimationFrame(this.wheelAnimationFrame);
+      this.wheelAnimationFrame = null;
+    }
+    this.wheelLastFrameTime = 0;
+    this.wheelDisplayIndex = this.selectedSongIndex;
+  }
+
   /** Seleciona ao clicar numa faixa visivel: a roda rola ate o centro e toca. */
   private selectByClick(index: number): void {
     if (index < 0 || index >= this.wheelTracks.length || index === this.selectedSongIndex) {
@@ -273,6 +350,7 @@ export class SearchPage implements OnInit, OnDestroy {
     }
 
     this.selectedSongIndex = index;
+    this.animateWheel();
     this.wheelSelection$.next();
   }
 
@@ -293,6 +371,7 @@ export class SearchPage implements OnInit, OnDestroy {
     const length = this.wheelTracks.length;
     if (length === 0) return;
     this.selectedSongIndex = (this.selectedSongIndex - 1 + length) % length;
+    this.animateWheel();
     this.wheelSelection$.next();
   }
 
@@ -300,6 +379,7 @@ export class SearchPage implements OnInit, OnDestroy {
     const length = this.wheelTracks.length;
     if (length === 0) return;
     this.selectedSongIndex = (this.selectedSongIndex + 1) % length;
+    this.animateWheel();
     this.wheelSelection$.next();
   }
 
