@@ -113,6 +113,39 @@ ion-content {
   transition: filter 0.2s ease;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.logout-btn {
+  flex-shrink: 0;
+  --padding-start: 8px;
+  --padding-end: 8px;
+  --background: transparent;
+  --background-hover: transparent;
+  --background-focused: transparent;
+  --background-activated: transparent;
+  transition: transform 0.2s ease;
+
+  &:hover {
+    transform: scale(1.1);
+
+    .logout-icon {
+      filter: drop-shadow(0 0 8.4px rgba(255, 255, 255, 0.6));
+    }
+  }
+}
+
+.logout-icon {
+  font-size: 28px;
+  color: #ffffff;
+  filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.6));
+  transition: filter 0.2s ease;
+}
+
 .search-hero {
   margin: 4px 0 16px;
 }
@@ -334,7 +367,7 @@ ion-list {
 
   .search-top-bar {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 44px;
+    grid-template-columns: minmax(0, 1fr) auto;
     grid-template-areas:
       'brand library'
       'search search';
@@ -377,10 +410,17 @@ ion-list {
     }
   }
 
-  .library-btn {
+  .header-actions {
     grid-area: library;
-    width: 44px;
-    height: 44px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: flex-end;
+  }
+
+  .library-btn, .logout-btn {
+    width: 38px;
+    height: 38px;
     margin: 0;
   }
 

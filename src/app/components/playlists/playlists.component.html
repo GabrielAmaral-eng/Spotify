@@ -4,12 +4,29 @@
   </div>
   <div class="panel-divider"></div>
   <div class="panel-list">
-    <div class="playlist-item" *ngFor="let pl of playlists">
+    <!-- Action button to create playlist -->
+    <div class="playlist-item create-btn" (click)="onCreatePlaylist()">
+      <div class="create-icon-wrapper">
+        <ion-icon name="add-outline" class="create-icon"></ion-icon>
+      </div>
+      <div class="playlist-info">
+        <span class="playlist-name create-text">Criar nova playlist</span>
+      </div>
+    </div>
+    
+    <div class="panel-divider inner-divider" *ngIf="(playlists$ | async)?.length"></div>
+
+    <div class="playlist-item" *ngFor="let pl of playlists$ | async" (click)="onPlaylistClick(pl)">
       <img src="assets/icon/Folder.svg" alt="Playlist folder" class="playlist-icon">
       <div class="playlist-info">
         <span class="playlist-name">{{ pl.name }}</span>
-        <span class="playlist-count">{{ pl.trackCount }} músicas</span>
+        <span class="playlist-count">{{ pl.tracks.length || 0 }} músicas</span>
       </div>
+    </div>
+
+    <!-- Empty state if there are no playlists -->
+    <div class="empty-state" *ngIf="!(playlists$ | async)?.length">
+      <span class="empty-text">Nenhuma playlist criada.</span>
     </div>
   </div>
 </div>

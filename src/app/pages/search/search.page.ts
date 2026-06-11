@@ -11,10 +11,13 @@ import {
   takeUntil,
   tap
 } from 'rxjs';
+import { Router } from '@angular/router';
 import { PlayerService } from '../../core/services/player.service';
 import { PlaylistService } from '../../core/services/playlist.service';
 import { AudiusService } from '../../core/services/audius.service';
+import { AuthService } from '../../core/services/auth.service';
 import { Track } from '../../shared/models/track.model';
+import { Playlist } from '../../shared/models/playlist.model';
 
 @Component({
   selector: 'app-search',
@@ -26,6 +29,8 @@ export class SearchPage implements OnInit, OnDestroy {
   private readonly audiusService = inject(AudiusService);
   private readonly playerService = inject(PlayerService);
   private readonly playlistService = inject(PlaylistService);
+  private readonly authService = inject(AuthService);
+  private readonly router = inject(Router);
   private readonly actionSheetController = inject(ActionSheetController);
   private readonly alertController = inject(AlertController);
   private readonly toastController = inject(ToastController);
@@ -114,6 +119,24 @@ export class SearchPage implements OnInit, OnDestroy {
   /** Abre ou fecha o painel de playlists */
   togglePlaylists(): void {
     this.showPlaylists = !this.showPlaylists;
+  }
+
+  async logout(): Promise<void> {
+    await this.authService.signOut();
+    await this.router.navigateByUrl('/login');
+  }
+
+  onSelectPlaylist(playlist: Playlist): void {
+    this.showPlaylists = false;
+    this.clearSearch();
+    this.wheelTracks = playlist.tracks || [];
+    this.selectedSongIndex = 0;
+
+    if (this.wheelTracks.length > 0) {
+      this.playWheelSelection();
+    } else {
+      this.presentToast('Esta playlist não possui músicas.');
+    }
   }
 
   onSearch(event: Event): void {

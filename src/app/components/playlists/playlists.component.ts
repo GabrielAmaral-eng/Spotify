@@ -1,28 +1,78 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, Output, EventEmitter, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-
-export interface MockPlaylist {
-  id: string;
-  name: string;
-  trackCount: number;
-}
+import { IonicModule, AlertController, ToastController } from '@ionic/angular';
+import { PlaylistService } from '../../core/services/playlist.service';
+import { Playlist } from '../../shared/models/playlist.model';
 
 @Component({
   selector: 'app-playlists',
   templateUrl: './playlists.component.html',
   styleUrls: ['./playlists.component.scss'],
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, IonicModule],
 })
 export class PlaylistsComponent {
   @Input() open = false;
+  @Output() selectPlaylist = new EventEmitter<Playlist>();
 
-  readonly playlists: MockPlaylist[] = [
-    { id: '1', name: 'Favoritas',      trackCount: 24 },
-    { id: '2', name: 'Lo-fi Noturno',  trackCount: 12 },
-    { id: '3', name: 'Energia Máxima', trackCount: 18 },
-    { id: '4', name: 'Tarde de Chuva', trackCount:  9 },
-    { id: '5', name: 'Workout',        trackCount: 31 },
-    { id: '6', name: 'Viagem',         trackCount: 15 },
-  ];
+  private readonly playlistService = inject(PlaylistService);
+  private readonly alertController = inject(AlertController);
+  private readonly toastController = inject(ToastController);
+
+  readonly playlists$ = this.playlistService.playlists$;
+
+  onPlaylistClick(playlist: Playlist): void {
+    this.selectPlaylist.emit(playlist);
+  }
+
+  async onCreatePlaylist(): Promise<void> {
+    const alert = await this.alertController.create({
+      header: 'Nova playlist',
+      inputs: [
+        {
+          name: 'name',
+          placeholder: 'Nome da playlist',
+          type: 'text'
+        },
+        {
+          name: 'description',
+          placeholder: 'Descrição opcional',
+          type: 'textarea'
+        }
+      ],
+      buttons: [
+        {
+          text: 'Cancelar',
+          role: 'cancel'
+        },
+        {
+          text: 'Criar',
+          handler: (data: { name?: string; description?: string }) => {
+            const name = data.name?.trim();
+
+            if (!name) {
+              return false;
+            }
+
+            this.playlistService.createPlaylist(name, data.description?.trim()).subscribe({
+              next: () => this.presentToast('Playlist criada com sucesso.'),
+              error: () => this.presentToast('Não foi possível criar a playlist.')
+            });
+
+            return true;
+          }
+        }
+      ]
+    });
+
+    await alert.present();
+  }
+
+  private presentToast(message: string): void {
+    this.toastController.create({
+      message,
+      duration: 1800,
+      position: 'bottom'
+    }).then((toast) => toast.present());
+  }
 }

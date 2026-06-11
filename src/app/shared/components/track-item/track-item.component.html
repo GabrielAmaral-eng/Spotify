@@ -28,6 +28,7 @@
       type="button"
       [attr.aria-label]="favorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos'"
       (click)="onFavorite($event)"
+      [class.is-favorite]="favorite"
     >
       <ion-icon [name]="favorite ? 'heart' : 'heart-outline'" aria-hidden="true"></ion-icon>
     </ion-button>
