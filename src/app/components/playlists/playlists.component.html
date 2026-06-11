@@ -45,6 +45,8 @@
         type="text"
         placeholder="Nome da playlist"
         name="newPlaylistName"
+        maxlength="80"
+        autocomplete="off"
         [(ngModel)]="newPlaylistName"
       />
 
@@ -52,12 +54,24 @@
         class="create-input create-textarea"
         placeholder="Descrição opcional"
         name="newPlaylistDescription"
+        maxlength="240"
         [(ngModel)]="newPlaylistDescription"
       ></textarea>
 
       <div class="create-actions">
-        <button type="submit" class="create-btn-action create-btn-confirm">Criar</button>
-        <button type="button" class="create-btn-action create-btn-cancel" (click)="cancelCreatePlaylist()">
+        <button
+          type="submit"
+          class="create-btn-action create-btn-confirm"
+          [disabled]="creatingPlaylist || !newPlaylistName.trim()"
+        >
+          {{ creatingPlaylist ? 'Criando...' : 'Criar' }}
+        </button>
+        <button
+          type="button"
+          class="create-btn-action create-btn-cancel"
+          [disabled]="creatingPlaylist"
+          (click)="cancelCreatePlaylist()"
+        >
           Cancelar
         </button>
       </div>

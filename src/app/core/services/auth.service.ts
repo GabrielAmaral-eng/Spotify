@@ -78,7 +78,27 @@ export class AuthService {
 
   async getAccessToken(): Promise<string | null> {
     await this.ready;
-    return this.sessionSubject.value?.access_token ?? null;
+
+    const session = this.sessionSubject.value;
+    const expiresAt = (session?.expires_at ?? 0) * 1000;
+
+    if (session && expiresAt > Date.now() + 30_000) {
+      return session.access_token;
+    }
+
+    if (!session?.refresh_token) {
+      return null;
+    }
+
+    const { data, error } = await this.supabase.auth.refreshSession();
+
+    if (error || !data.session) {
+      this.sessionSubject.next(null);
+      return null;
+    }
+
+    this.sessionSubject.next(data.session);
+    return data.session.access_token;
   }
 
   async requireUser(): Promise<User> {

@@ -1,3 +1,4 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { Component, Input, Output, EventEmitter, HostListener, ElementRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -28,6 +29,7 @@ export class PlaylistsComponent {
   showCreatePopup = false;
   newPlaylistName = '';
   newPlaylistDescription = '';
+  creatingPlaylist = false;
 
   // Estado do menu dropdown de opções da playlist (3 pontos) — elemento HTML próprio
   showOptionsPopup = false;
@@ -85,17 +87,23 @@ export class PlaylistsComponent {
   confirmCreatePlaylist(): void {
     const name = this.newPlaylistName.trim();
 
-    if (!name) {
+    if (!name || this.creatingPlaylist) {
       return;
     }
 
     const description = this.newPlaylistDescription.trim();
-
-    this.closeCreatePopup();
+    this.creatingPlaylist = true;
 
     this.playlistService.createPlaylist(name, description).subscribe({
-      next: () => this.presentToast('Playlist criada com sucesso.'),
-      error: () => this.presentToast('Não foi possível criar a playlist.')
+      next: () => {
+        this.creatingPlaylist = false;
+        this.closeCreatePopup();
+        this.presentToast('Playlist criada com sucesso.');
+      },
+      error: (error: unknown) => {
+        this.creatingPlaylist = false;
+        this.presentToast(this.getRequestError(error, 'Não foi possível criar a playlist.'));
+      }
     });
   }
 
@@ -105,6 +113,7 @@ export class PlaylistsComponent {
 
   private closeCreatePopup(): void {
     this.showCreatePopup = false;
+    this.creatingPlaylist = false;
     this.newPlaylistName = '';
     this.newPlaylistDescription = '';
   }
@@ -285,6 +294,25 @@ export class PlaylistsComponent {
 
   trackByTrackId(_index: number, track: Track): string {
     return track.id;
+  }
+
+  private getRequestError(error: unknown, fallback: string): string {
+    if (!(error instanceof HttpErrorResponse)) {
+      return fallback;
+    }
+
+    if (error.status === 0) {
+      return 'Não foi possível conectar ao servidor.';
+    }
+
+    if (error.status === 401) {
+      return 'Sua sessão expirou. Entre novamente.';
+    }
+
+    const serverMessage = error.error?.error;
+    return typeof serverMessage === 'string' && serverMessage.trim()
+      ? serverMessage
+      : fallback;
   }
 
   private presentToast(message: string): void {
