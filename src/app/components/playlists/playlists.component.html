@@ -107,7 +107,12 @@
     <span class="options-menu-title">{{ optionsPlaylist?.name }}</span>
 
     <div class="options-list">
-      <button type="button" class="options-item" (click)="onOptionRename()">
+      <button
+        type="button"
+        class="options-item"
+        *ngIf="!optionsPlaylistIsLiked"
+        (click)="onOptionRename()"
+      >
         <ion-icon name="pencil-outline" class="options-item-icon"></ion-icon>
         <span class="options-item-label">Renomear</span>
       </button>
@@ -117,7 +122,12 @@
         <span class="options-item-label">Gerenciar músicas</span>
       </button>
 
-      <button type="button" class="options-item options-item--danger" (click)="onOptionDelete()">
+      <button
+        type="button"
+        class="options-item options-item--danger"
+        *ngIf="!optionsPlaylistIsLiked"
+        (click)="onOptionDelete()"
+      >
         <ion-icon name="trash-outline" class="options-item-icon"></ion-icon>
         <span class="options-item-label">Excluir playlist</span>
       </button>

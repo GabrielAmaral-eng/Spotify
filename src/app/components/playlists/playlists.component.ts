@@ -156,6 +156,11 @@ export class PlaylistsComponent {
     this.optionsPlaylist = null;
   }
 
+  /** "Músicas curtidas" não pode ser renomeada nem excluída manualmente. */
+  get optionsPlaylistIsLiked(): boolean {
+    return !!this.optionsPlaylist && this.playlistService.isLikedPlaylist(this.optionsPlaylist);
+  }
+
   private openRenamePlaylist(playlist: Playlist): void {
     this.renamePlaylistTarget = playlist;
     this.renameName = playlist.name;
