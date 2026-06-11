@@ -25,17 +25,34 @@
           ></ion-input>
         </ion-item>
 
-        <ion-item lines="none" class="field">
+        <ion-item lines="none" class="field password-field">
           <ion-input
             label="Senha"
             labelPlacement="stacked"
-            type="password"
+            [type]="showPassword ? 'text' : 'password'"
             autocomplete="current-password"
             [(ngModel)]="password"
             name="password"
             minlength="6"
             required
           ></ion-input>
+          <button
+            type="button"
+            class="eye-toggle"
+            (click)="onEyeClick()"
+            [attr.aria-label]="showPassword ? 'Ocultar senha' : 'Mostrar senha'"
+          >
+            <!-- Eye open icon -->
+            <svg *ngIf="!showPassword" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="eye-icon">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+            <!-- Eye off icon -->
+            <svg *ngIf="showPassword" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="eye-icon">
+              <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+              <line x1="1" y1="1" x2="23" y2="23"/>
+            </svg>
+          </button>
         </ion-item>
 
         <ion-note color="danger" *ngIf="errorMessage">{{ errorMessage }}</ion-note>
@@ -56,4 +73,33 @@
       </button>
     </div>
   </section>
+
+  <!-- Alerta de segurança (aparece após confirmar) -->
+  <div class="security-alert" *ngIf="showSecurityAlert" [@fadeSlide]>
+    <div class="security-alert-icon">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+        <line x1="12" y1="9" x2="12" y2="13"/>
+        <line x1="12" y1="17" x2="12.01" y2="17"/>
+      </svg>
+    </div>
+    <span>Sua senha foi comprometida. Por segurança, insira-a novamente.</span>
+  </div>
+
+  <!-- Pop-up de confirmação -->
+  <div class="confirm-overlay" *ngIf="showConfirmPopup" (click)="cancelShowPassword()">
+    <div class="confirm-card" (click)="$event.stopPropagation()">
+      <div class="confirm-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+      </div>
+      <h2 class="confirm-title">Mostrar senha?</h2>
+      <p class="confirm-text">Tem certeza que deseja visualizar a senha? Isso pode comprometer a segurança.</p>
+      <div class="confirm-actions">
+        <button class="confirm-btn confirm-btn--cancel" (click)="cancelShowPassword()">Cancelar</button>
+        <button class="confirm-btn confirm-btn--yes" (click)="confirmShowPassword()">Sim, mostrar</button>
+      </div>
+    </div>
+  </div>
 </ion-content>
