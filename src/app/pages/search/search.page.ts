@@ -190,9 +190,16 @@ export class SearchPage implements OnInit, OnDestroy {
   }
 
   async addToPlaylist(track: Track): Promise<void> {
-    const playlists = this.playlistService.playlistsSnapshot;
+    const allPlaylists = this.playlistService.playlistsSnapshot;
+    const playlists = allPlaylists.filter(
+      (playlist) => !playlist.tracks.some((t) => t.id === track.id)
+    );
 
-    if (playlists.length === 0) {
+    if (allPlaylists.length === 0 || playlists.length === 0) {
+      if (allPlaylists.length > 0 && playlists.length === 0) {
+        this.presentToast('Essa música já está em todas as suas playlists.');
+        return;
+      }
       await this.promptCreatePlaylist(track);
       return;
     }

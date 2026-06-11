@@ -22,6 +22,9 @@
         <span class="playlist-name">{{ pl.name }}</span>
         <span class="playlist-count">{{ pl.tracks.length || 0 }} músicas</span>
       </div>
+      <button class="playlist-options-btn" aria-label="Opções da playlist" (click)="onPlaylistOptions($event, pl)">
+        <ion-icon name="ellipsis-vertical" class="options-icon"></ion-icon>
+      </button>
     </div>
 
     <!-- Empty state if there are no playlists -->
