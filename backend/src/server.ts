@@ -8,13 +8,24 @@ import { audiusRouter } from './modules/audius/audius.routes';
 const app = express();
 const port = env.PORT;
 const frontendUrl = env.FRONTEND_URL;
-const allowedOrigins = Array.from(
-  new Set([frontendUrl, 'http://localhost:8100', 'http://127.0.0.1:8100'])
-);
+const allowedOrigins = new Set([
+  frontendUrl,
+  'http://localhost:8100',
+  'http://127.0.0.1:8100'
+]);
+const localNetworkOrigin =
+  /^http:\/\/(?:10(?:\.\d{1,3}){3}|192\.168(?:\.\d{1,3}){2}|172\.(?:1[6-9]|2\d|3[01])(?:\.\d{1,3}){2}):8100$/;
 
 app.use(
   cors({
-    origin: allowedOrigins,
+    origin(origin, callback) {
+      if (!origin || allowedOrigins.has(origin) || localNetworkOrigin.test(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      callback(new Error(`Origem nao permitida pelo CORS: ${origin}`));
+    },
     credentials: true
   })
 );

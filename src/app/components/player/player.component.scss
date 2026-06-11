@@ -494,3 +494,70 @@ ion-range {
 :host(.embedded) .player-meta span {
   display: none;
 }
+
+@media (max-width: 640px) {
+  :host(.embedded) .player-shell {
+    padding: 9px 8px 8px;
+  }
+
+  :host(.embedded) .player-panel {
+    gap: 7px;
+  }
+
+  :host(.embedded) .player-actions {
+    gap: 4px;
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  :host(.embedded) .skip-button,
+  :host(.embedded) .utility-button {
+    height: 38px;
+    width: 38px;
+  }
+
+  :host(.embedded) .play-button {
+    height: 52px;
+    width: 52px;
+  }
+
+  :host(.embedded) .player-progress-row {
+    gap: 2px;
+    min-height: 38px;
+    width: 100%;
+  }
+
+  :host(.embedded) .player-progress {
+    flex: 1;
+    gap: 7px;
+    grid-template-columns: 34px minmax(0, 1fr) 34px;
+    width: auto;
+  }
+
+  :host(.embedded) .player-progress span {
+    font-size: 0.74rem;
+  }
+
+  :host(.embedded) .volume-button {
+    height: 36px;
+    width: 36px;
+  }
+
+  :host(.embedded) .volume-button__icon {
+    height: 21px;
+    width: 21px;
+  }
+
+  :host(.embedded) .player-meta {
+    gap: 0;
+    max-width: calc(100vw - 60px);
+  }
+
+  :host(.embedded) .player-meta h1 {
+    font-size: 0.92rem;
+  }
+
+  :host(.embedded) .player-meta p {
+    font-size: 0.72rem;
+  }
+}
