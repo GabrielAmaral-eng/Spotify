@@ -178,3 +178,550 @@
   font-size: 13px;
   color: rgba(255, 255, 255, 0.4);
 }
+
+/* ============================================================
+ * Pop-up "Criar nova playlist" (elemento HTML próprio)
+ * Container/título no estilo do .playlists-panel, campos no
+ * estilo dos campos do login e botões no estilo do pop-up de
+ * confirmação do login.
+ * ============================================================ */
+.create-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.create-card {
+  box-sizing: border-box;
+  width: 33vw;
+  max-width: 33vw;
+  padding: 24px 0 16px;
+  background: rgba(10, 30, 24, 0.72);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1.5px solid rgba(255, 255, 255, 0.85);
+  border-radius: 20px;
+  box-shadow:
+    0 0 18px rgba(255, 255, 255, 0.18),
+    0 0 48px rgba(255, 255, 255, 0.07),
+    0 8px 32px rgba(0, 0, 0, 0.45);
+}
+
+.create-title {
+  margin: 0;
+  padding: 0 20px;
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.5));
+}
+
+.create-form {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Campos: mesma linguagem dos campos de e-mail/senha do login */
+.create-input {
+  box-sizing: border-box;
+  display: block;
+  margin: 14px 20px 0;
+  padding: 12px 14px;
+  background: transparent;
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  border-radius: 14px;
+  color: #ffffff;
+  font: inherit;
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.35));
+  transition: filter 0.2s ease, transform 0.2s ease;
+
+  &::placeholder {
+    color: rgba(255, 255, 255, 0.6);
+  }
+
+  &:hover,
+  &:focus {
+    outline: none;
+    filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.8));
+    transform: scale(1.01);
+  }
+}
+
+.create-textarea {
+  min-height: 72px;
+  resize: none;
+}
+
+/* Botões: estilo do pop-up de confirmação do login */
+.create-actions {
+  display: flex;
+  flex-direction: row;
+  gap: 15px;
+  margin-top: 18px;
+  padding: 0 20px;
+}
+
+.create-btn-action {
+  box-sizing: border-box;
+  flex: 1;
+  padding: 15px;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-transform: none;
+  transition: filter 0.2s ease, transform 0.15s ease, background 0.2s ease;
+
+  &:active {
+    transform: scale(0.97);
+  }
+}
+
+/* "Criar" — neutro/branco */
+.create-btn-confirm {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.75);
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+  }
+}
+
+/* "Cancelar" — vermelho */
+.create-btn-cancel {
+  background: rgba(255, 80, 80, 0.15);
+  border: 1px solid rgba(255, 80, 80, 0.3);
+  color: #ff8a8a;
+
+  &:hover {
+    background: rgba(255, 80, 80, 0.25);
+    color: #ffaaaa;
+    filter: drop-shadow(0 0 10px rgba(255, 80, 80, 0.3));
+  }
+}
+
+/* ============================================================
+ * Menu dropdown de opções da playlist (3 pontos)
+ * Mesma linguagem visual (vidro-fosco verde, outline, glow),
+ * porém compacto e ancorado ao botão dos 3 pontos.
+ * ============================================================ */
+.options-backdrop {
+  /* Camada transparente apenas para fechar o menu ao clicar fora */
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+}
+
+.options-menu {
+  position: fixed;
+  box-sizing: border-box;
+  width: 210px;
+  padding: 8px;
+  background: rgba(10, 30, 24, 0.85);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  border-radius: 14px;
+  box-shadow:
+    0 0 14px rgba(255, 255, 255, 0.16),
+    0 8px 24px rgba(0, 0, 0, 0.5);
+  animation: optionsMenuIn 0.16s ease-out;
+}
+
+.options-menu-title {
+  display: block;
+  padding: 4px 8px 8px;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.options-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.options-item {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 9px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease, filter 0.18s ease, transform 0.15s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #ffffff;
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+.options-item-icon {
+  flex-shrink: 0;
+  font-size: 17px;
+}
+
+.options-item-label {
+  flex: 1;
+  min-width: 0;
+}
+
+/* "Excluir playlist" — vermelho (destrutivo) */
+.options-item--danger {
+  color: #ff8a8a;
+
+  &:hover {
+    background: rgba(255, 80, 80, 0.18);
+    color: #ffaaaa;
+    filter: drop-shadow(0 0 8px rgba(255, 80, 80, 0.25));
+  }
+}
+
+/* "Cancelar" — neutro e discreto */
+.options-item--cancel {
+  color: rgba(255, 255, 255, 0.5);
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.8);
+  }
+}
+
+@keyframes optionsMenuIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ============================================================
+ * Pop-up de confirmação de exclusão de playlist
+ * Mesmo card do pop-up de criar (vidro-fosco, outline, glow).
+ * ============================================================ */
+.delete-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.delete-card {
+  box-sizing: border-box;
+  width: 33vw;
+  max-width: 33vw;
+  padding: 24px 20px 16px;
+  background: rgba(10, 30, 24, 0.72);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1.5px solid rgba(255, 255, 255, 0.85);
+  border-radius: 20px;
+  box-shadow:
+    0 0 18px rgba(255, 255, 255, 0.18),
+    0 0 48px rgba(255, 255, 255, 0.07),
+    0 8px 32px rgba(0, 0, 0, 0.45);
+}
+
+.delete-title {
+  margin: 0;
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.5));
+}
+
+.delete-message {
+  margin: 12px 0 0;
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.delete-actions {
+  display: flex;
+  flex-direction: row;
+  gap: 15px;
+  margin-top: 22px;
+}
+
+.delete-btn {
+  box-sizing: border-box;
+  flex: 1;
+  padding: 15px;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-transform: none;
+  transition: filter 0.2s ease, transform 0.15s ease, background 0.2s ease, color 0.2s ease;
+
+  &:active {
+    transform: scale(0.97);
+  }
+}
+
+/* "Excluir" — vermelho (destrutivo) */
+.delete-btn--confirm {
+  background: rgba(255, 80, 80, 0.15);
+  border: 1px solid rgba(255, 80, 80, 0.3);
+  color: #ff8a8a;
+
+  &:hover {
+    background: rgba(255, 80, 80, 0.25);
+    color: #ffaaaa;
+    filter: drop-shadow(0 0 10px rgba(255, 80, 80, 0.3));
+  }
+}
+
+/* "Cancelar" — neutro/branco */
+.delete-btn--cancel {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.75);
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+  }
+}
+
+/* ============================================================
+ * Pop-up "Gerenciar músicas"
+ * Chrome (borda, fundo, título, botão fechar) no mesmo estilo
+ * dos demais popups. Lista de músicas no estilo da busca, com
+ * lixeira à esquerda; scroll próprio (~6,5 itens) e indicador
+ * de scroll à direita.
+ * ============================================================ */
+.manage-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.manage-card {
+  box-sizing: border-box;
+  width: 33vw;
+  max-width: 33vw;
+  padding: 22px 0 16px;
+  background: rgba(10, 30, 24, 0.72);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1.5px solid rgba(255, 255, 255, 0.85);
+  border-radius: 20px;
+  box-shadow:
+    0 0 18px rgba(255, 255, 255, 0.18),
+    0 0 48px rgba(255, 255, 255, 0.07),
+    0 8px 32px rgba(0, 0, 0, 0.45);
+}
+
+.manage-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 20px 14px;
+}
+
+.manage-title {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.5));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Botão de fechar — mesma linguagem (vidro, branco, glow) */
+.manage-close {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 50%;
+  color: #ffffff;
+  cursor: pointer;
+  filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.35));
+  transition: background 0.2s ease, transform 0.2s ease, filter 0.2s ease;
+
+  ion-icon {
+    font-size: 18px;
+  }
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.12);
+    transform: scale(1.08);
+    filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.7));
+  }
+}
+
+/* Lista com scroll próprio: cada item ocupa 72px (64px + 8px),
+   logo 6,5 itens ≈ 468px de altura visível. */
+.manage-list {
+  max-height: calc(72px * 6.5);
+  overflow-y: auto;
+  padding: 0 14px 0 20px;
+  /* Indicador de scroll à direita (Firefox) */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+}
+
+/* Indicador de scroll à direita (WebKit/Chromium) */
+.manage-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.manage-list::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 2px 0;
+}
+
+.manage-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 999px;
+}
+
+.manage-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+.managed-track {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 64px;
+  margin-bottom: 8px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+}
+
+/* Lixeira à esquerda — mesmo ícone do excluir playlist, tamanho
+   fixo e com brilho. */
+.managed-track__remove {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #ff8a8a;
+  transition: transform 0.18s ease, color 0.18s ease;
+
+  ion-icon {
+    font-size: 20px;
+    filter: drop-shadow(0 0 6px rgba(255, 80, 80, 0.55));
+    transition: filter 0.18s ease;
+  }
+
+  &:hover {
+    color: #ffaaaa;
+    transform: scale(1.12);
+
+    ion-icon {
+      filter: drop-shadow(0 0 10px rgba(255, 80, 80, 0.85));
+    }
+  }
+}
+
+.managed-track__cover {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  overflow: hidden;
+
+  img,
+  .managed-track__cover-fallback {
+    width: 48px;
+    height: 48px;
+    object-fit: cover;
+  }
+}
+
+.managed-track__cover-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #1db954, #00a6a6);
+  color: #07100c;
+}
+
+.managed-track__info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+
+.managed-track__title {
+  color: #ffffff;
+  font-size: 0.95rem;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.managed-track__artist {
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.82rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

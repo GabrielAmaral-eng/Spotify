@@ -153,6 +153,20 @@ export class PlayerService {
     this.isLoadingSubject.next(false);
   }
 
+  /**
+   * Encerra a reproducao por completo e zera a faixa atual. Usado no logout
+   * para que o mini-player nao continue na tela de login com uma musica
+   * "tocando".
+   */
+  stop(): void {
+    this.audio.pause();
+    this.clearAudio();
+    this.currentTrackSubject.next(null);
+    this.isPlayingSubject.next(false);
+    this.isLoadingSubject.next(false);
+    this.progressSubject.next(0);
+  }
+
   /** Pede a faixa anterior (uma para cima na roda). */
   requestPrevious(): void {
     this.skipPreviousSubject.next();

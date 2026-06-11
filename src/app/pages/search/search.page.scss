@@ -15,6 +15,13 @@ ion-content {
   -webkit-overflow-scrolling: touch;
 }
 
+/* Rodape da lista: spinner enquanto a proxima pagina carrega. */
+.search-results__more {
+  display: flex;
+  justify-content: center;
+  padding: 16px 0 24px;
+}
+
 /* Player docado — ocupa a mesma ancora do antigo mini-player (rodape). */
 .search-player-dock {
   position: fixed;
@@ -251,8 +258,8 @@ p {
   gap: 18px;
   max-width: calc(100vw - var(--wheel-item-left) - 32px);
   color: #ffffff;
-  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-              opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  // O giro (transform + opacity) e dirigido quadro a quadro por requestAnimationFrame
+  // no componente, seguindo o arco. Sem transition CSS aqui para nao competir com ele.
   pointer-events: none;
   white-space: nowrap;
 
