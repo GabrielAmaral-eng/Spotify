@@ -725,3 +725,96 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+@media (max-width: 600px) {
+  .manage-overlay {
+    align-items: flex-end;
+    padding: 16px 12px 0;
+  }
+
+  .manage-card {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 480px;
+    max-height: calc(100dvh - 24px);
+    padding: 18px 0 max(16px, env(safe-area-inset-bottom));
+    border-radius: 20px 20px 0 0;
+  }
+
+  .manage-header {
+    align-items: flex-start;
+    padding: 0 16px 14px;
+  }
+
+  .manage-title {
+    padding-top: 7px;
+    font-size: 1.05rem;
+    line-height: 1.35;
+    white-space: normal;
+  }
+
+  .manage-close {
+    width: 40px;
+    height: 40px;
+  }
+
+  .manage-list {
+    flex: 1;
+    min-height: 0;
+    max-height: none;
+    padding: 0 10px 0 12px;
+  }
+
+  .managed-track {
+    gap: 10px;
+    min-height: 72px;
+    height: auto;
+    padding: 10px;
+  }
+
+  .managed-track__cover {
+    order: 1;
+    width: 52px;
+    height: 52px;
+
+    img,
+    .managed-track__cover-fallback {
+      width: 52px;
+      height: 52px;
+    }
+  }
+
+  .managed-track__info {
+    order: 2;
+  }
+
+  .managed-track__title {
+    display: -webkit-box;
+    overflow: hidden;
+    font-size: 0.9rem;
+    line-height: 1.25;
+    white-space: normal;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .managed-track__artist {
+    font-size: 0.78rem;
+  }
+
+  .managed-track__remove {
+    order: 3;
+    width: 44px;
+    height: 44px;
+    margin-left: auto;
+    background: rgba(255, 80, 80, 0.08);
+    border: 1px solid rgba(255, 80, 80, 0.15);
+    border-radius: 50%;
+  }
+
+  .delete-card {
+    width: calc(100% - 24px);
+    max-width: 420px;
+  }
+}
