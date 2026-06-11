@@ -72,6 +72,18 @@ export class SearchPage implements OnInit, OnDestroy {
   private wheelLastFrameTime = 0;
   /** Constante de tempo do amortecimento (ms): menor = giro mais rapido. */
   private readonly wheelTau = 100;
+  /**
+   * Minimo de faixas para a roda girar de forma infinita (com emenda). O arco
+   * visivel comporta 7 itens distintos (offsets -3..3, ate o fade em 3.2); com
+   * menos que isso o wrap faria a mesma faixa reaparecer duplicada do outro
+   * lado, entao abaixo deste limite a roda vira uma lista finita (com batente).
+   */
+  private readonly wheelLoopThreshold = 7;
+
+  /** A roda so gira infinitamente quando ha faixas suficientes para o arco. */
+  private get wheelLoops(): boolean {
+    return this.wheelTracks.length >= this.wheelLoopThreshold;
+  }
 
   ngOnInit(): void {
     this.playlistService.loadPlaylists().pipe(takeUntil(this.destroy$)).subscribe();
@@ -141,6 +153,7 @@ export class SearchPage implements OnInit, OnDestroy {
   }
 
   async logout(): Promise<void> {
+    this.playerService.stop();
     await this.authService.signOut();
     await this.router.navigateByUrl('/login');
   }
@@ -263,8 +276,12 @@ export class SearchPage implements OnInit, OnDestroy {
     // Usa a posicao visual continua (nao o indice inteiro) para que os itens
     // sejam recalculados sobre o arco a cada quadro durante o giro.
     let offset = songIdx - this.wheelDisplayIndex;
-    while (offset > length / 2) offset -= length;
-    while (offset <= -length / 2) offset += length;
+    // So reposiciona pelo caminho mais curto (emenda) quando a roda e infinita;
+    // com poucas faixas isso duplicaria itens no outro lado do arco.
+    if (this.wheelLoops) {
+      while (offset > length / 2) offset -= length;
+      while (offset <= -length / 2) offset += length;
+    }
     return offset;
   }
 
@@ -311,9 +328,12 @@ export class SearchPage implements OnInit, OnDestroy {
 
       // Alvo: a copia de selectedSongIndex mais proxima da posicao atual, para
       // girar pelo caminho mais curto mesmo cruzando a emenda da roda infinita.
+      // Numa lista finita nao ha emenda: vai direto ao indice selecionado.
       let target = this.selectedSongIndex;
-      while (target - this.wheelDisplayIndex > length / 2) target -= length;
-      while (target - this.wheelDisplayIndex < -length / 2) target += length;
+      if (this.wheelLoops) {
+        while (target - this.wheelDisplayIndex > length / 2) target -= length;
+        while (target - this.wheelDisplayIndex < -length / 2) target += length;
+      }
 
       // Amortecimento exponencial independente da taxa de quadros (60/120Hz).
       const k = 1 - Math.exp(-dt / this.wheelTau);
@@ -370,7 +390,13 @@ export class SearchPage implements OnInit, OnDestroy {
   selectPrev(): void {
     const length = this.wheelTracks.length;
     if (length === 0) return;
-    this.selectedSongIndex = (this.selectedSongIndex - 1 + length) % length;
+    if (this.wheelLoops) {
+      this.selectedSongIndex = (this.selectedSongIndex - 1 + length) % length;
+    } else {
+      // Lista finita: batente no topo, sem dar a volta.
+      if (this.selectedSongIndex === 0) return;
+      this.selectedSongIndex -= 1;
+    }
     this.animateWheel();
     this.wheelSelection$.next();
   }
@@ -378,7 +404,13 @@ export class SearchPage implements OnInit, OnDestroy {
   selectNext(): void {
     const length = this.wheelTracks.length;
     if (length === 0) return;
-    this.selectedSongIndex = (this.selectedSongIndex + 1) % length;
+    if (this.wheelLoops) {
+      this.selectedSongIndex = (this.selectedSongIndex + 1) % length;
+    } else {
+      // Lista finita: batente no fim, sem dar a volta.
+      if (this.selectedSongIndex === length - 1) return;
+      this.selectedSongIndex += 1;
+    }
     this.animateWheel();
     this.wheelSelection$.next();
   }
