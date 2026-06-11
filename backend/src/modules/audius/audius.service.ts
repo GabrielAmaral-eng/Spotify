@@ -39,18 +39,27 @@ interface AudiusTrackResponse {
 class AudiusService {
   private readonly appName = env.AUDIUS_APP_NAME;
 
-  async searchTracks(query: string): Promise<Track[]> {
+  async searchTracks(
+    query: string,
+    limit: number,
+    offset: number
+  ): Promise<{ tracks: Track[]; hasMore: boolean }> {
     const { data } = await audiusHttp.get<AudiusSearchResponse>(
       `${AUDIUS_API}/v1/tracks/search`,
       {
-        params: { query, app_name: this.appName }
+        params: { query, app_name: this.appName, limit, offset }
       }
     );
 
-    return data.data
+    const tracks = data.data
       .filter((track) => this.isPlayable(track))
-      .map((track) => this.normalizeTrack(track))
-      .slice(0, 20);
+      .map((track) => this.normalizeTrack(track));
+
+    // O fim e decidido pela contagem crua (antes do filtro de reproduziveis):
+    // uma pagina cheia de faixas nao-tocaveis esvaziaria 'tracks' sem que os
+    // resultados tivessem acabado. Enquanto a API devolver itens nesta janela,
+    // ha proxima pagina a buscar.
+    return { tracks, hasMore: data.data.length > 0 };
   }
 
   async getTrack(id: string): Promise<Track> {

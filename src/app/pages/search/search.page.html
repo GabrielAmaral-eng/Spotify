@@ -103,7 +103,7 @@
   </div>
 
   <!-- Lista de resultados: rola por conta propria (a pagina fica travada). -->
-  <div class="search-results" *ngIf="loading || results.length">
+  <div class="search-results" *ngIf="loading || results.length" (scroll)="onResultsScroll($event)">
     <ion-list *ngIf="loading">
       <ion-item lines="none" *ngFor="let skeleton of [1, 2, 3, 4]">
         <ion-thumbnail slot="start">
@@ -126,6 +126,11 @@
         (addToPlaylist)="addToPlaylist($event)"
       ></app-track-item>
     </ng-container>
+
+    <!-- Indicador de carregamento da proxima pagina (scroll infinito). -->
+    <div class="search-results__more" *ngIf="loadingMore">
+      <ion-spinner name="dots"></ion-spinner>
+    </div>
   </div>
 
   <!-- Player docado — some durante a busca e volta ao limpar a barra. -->

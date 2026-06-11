@@ -14,7 +14,7 @@ import {
 import { Router } from '@angular/router';
 import { PlayerService } from '../../core/services/player.service';
 import { PlaylistService } from '../../core/services/playlist.service';
-import { AudiusService } from '../../core/services/audius.service';
+import { AudiusService, TrackSearchPage } from '../../core/services/audius.service';
 import { AuthService } from '../../core/services/auth.service';
 import { Track } from '../../shared/models/track.model';
 import { Playlist } from '../../shared/models/playlist.model';
@@ -45,10 +45,23 @@ export class SearchPage implements OnInit, OnDestroy {
   loading = false;
   errorMessage = '';
 
+  /** Tamanho de cada pagina da busca (scroll infinito). */
+  private readonly searchPageSize = 20;
+  /** Proximo offset a pedir a API; avanca de pagina em pagina. */
+  private searchOffset = 0;
+  /** Ha mais paginas a carregar para a busca atual. */
+  private searchHasMore = false;
+  /** Carregando a proxima pagina — distinto do loading da primeira busca. */
+  loadingMore = false;
+
   /** Controla a visibilidade do painel de playlists */
   showPlaylists = false;
 
-  /** Musicas da ultima pesquisa, exibidas na roda rolavel e infinita. */
+  /**
+   * Faixas atualmente na roda rolavel. Vindo da busca, e uma janela ao redor
+   * da escolhida (ver loadWheelFromResults); vindo de uma playlist, sao todas
+   * as faixas dela.
+   */
   wheelTracks: Track[] = [];
   selectedSongIndex = 0;
   private readonly wheelSelection$ = new Subject<void>();
@@ -85,6 +98,13 @@ export class SearchPage implements OnInit, OnDestroy {
     return this.wheelTracks.length >= this.wheelLoopThreshold;
   }
 
+  /**
+   * Ao escolher uma faixa da BUSCA, a roda recebe so uma janela ao redor dela:
+   * ate este numero de sugestoes anteriores acima e o mesmo de posteriores
+   * abaixo. (Playlists continuam alimentando a roda por completo.)
+   */
+  private readonly wheelContextRadius = 5;
+
   ngOnInit(): void {
     this.playlistService.loadPlaylists().pipe(takeUntil(this.destroy$)).subscribe();
     this.playlistService.loadFavorites().pipe(takeUntil(this.destroy$)).subscribe();
@@ -95,19 +115,20 @@ export class SearchPage implements OnInit, OnDestroy {
       tap((term) => {
         this.errorMessage = '';
         this.loading = term.length > 0;
-        if (!term) {
-          this.results = [];
-        }
+        // Toda nova busca reinicia a paginacao.
+        this.results = [];
+        this.searchOffset = 0;
+        this.searchHasMore = false;
       }),
       switchMap((term) => {
         if (!term) {
-          return of([]);
+          return of({ tracks: [], hasMore: false } as TrackSearchPage);
         }
 
-        return this.audiusService.searchTracks(term).pipe(
+        return this.audiusService.searchTracks(term, this.searchPageSize, 0).pipe(
           catchError(() => {
             this.errorMessage = 'Não foi possível buscar músicas agora.';
-            return of([]);
+            return of({ tracks: [], hasMore: false } as TrackSearchPage);
           }),
           finalize(() => {
             this.loading = false;
@@ -115,8 +136,10 @@ export class SearchPage implements OnInit, OnDestroy {
         );
       }),
       takeUntil(this.destroy$)
-    ).subscribe((tracks) => {
-      this.results = tracks;
+    ).subscribe((page) => {
+      this.results = page.tracks;
+      this.searchHasMore = page.hasMore;
+      this.searchOffset = this.searchPageSize;
     });
 
     // Ao rolar a roda, toca a faixa central — so depois que a rolagem assenta,
@@ -178,6 +201,51 @@ export class SearchPage implements OnInit, OnDestroy {
     this.searchTerms.next(this.query);
   }
 
+  /**
+   * Scroll infinito da lista de resultados: ao se aproximar do fim, carrega a
+   * proxima pagina da busca e a anexa aos resultados ja exibidos.
+   */
+  onResultsScroll(event: Event): void {
+    const el = event.target as HTMLElement;
+    const remaining = el.scrollHeight - el.scrollTop - el.clientHeight;
+    // Dispara um pouco antes do fim para o carregamento parecer continuo.
+    if (remaining <= 240) {
+      this.loadMoreResults();
+    }
+  }
+
+  private loadMoreResults(): void {
+    if (this.loadingMore || this.loading || !this.searchHasMore || !this.query) {
+      return;
+    }
+
+    const term = this.query;
+    const offset = this.searchOffset;
+    this.loadingMore = true;
+
+    this.audiusService.searchTracks(term, this.searchPageSize, offset)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (page) => {
+          // A busca pode ter mudado enquanto a pagina carregava: descarta se sim.
+          if (this.query === term) {
+            // Evita duplicatas caso a janela da API se sobreponha pela filtragem.
+            const seen = new Set(this.results.map((track) => track.id));
+            const fresh = page.tracks.filter((track) => !seen.has(track.id));
+            this.results = [...this.results, ...fresh];
+            this.searchHasMore = page.hasMore;
+            this.searchOffset = offset + this.searchPageSize;
+          }
+          this.loadingMore = false;
+        },
+        // Falha de rede: nao avanca o offset, permitindo nova tentativa no
+        // proximo scroll sem pular uma pagina.
+        error: () => {
+          this.loadingMore = false;
+        }
+      });
+  }
+
   play(track: Track): void {
     this.loadWheelFromResults(track);
     this.playerService.play(track);
@@ -185,17 +253,23 @@ export class SearchPage implements OnInit, OnDestroy {
   }
 
   /**
-   * Guarda as sugestoes da pesquisa atual (no momento do clique) na roda e
-   * centraliza na faixa escolhida.
+   * Alimenta a roda com uma JANELA das sugestoes ao redor da faixa escolhida:
+   * ate wheelContextRadius itens anteriores acima e o mesmo de posteriores
+   * abaixo (o que estiver carregado nos resultados). A faixa escolhida fica
+   * centralizada. Nas bordas dos resultados a janela e menor.
    */
   private loadWheelFromResults(selected: Track): void {
     if (this.results.length === 0) {
       return;
     }
 
-    this.wheelTracks = [...this.results];
-    const index = this.wheelTracks.findIndex((track) => track.id === selected.id);
-    this.selectedSongIndex = index >= 0 ? index : 0;
+    const index = this.results.findIndex((track) => track.id === selected.id);
+    const center = index >= 0 ? index : 0;
+    const start = Math.max(0, center - this.wheelContextRadius);
+    const end = Math.min(this.results.length, center + this.wheelContextRadius + 1);
+
+    this.wheelTracks = this.results.slice(start, end);
+    this.selectedSongIndex = center - start;
     this.snapWheel();
   }
 

@@ -15,6 +15,13 @@ ion-content {
   -webkit-overflow-scrolling: touch;
 }
 
+/* Rodape da lista: spinner enquanto a proxima pagina carrega. */
+.search-results__more {
+  display: flex;
+  justify-content: center;
+  padding: 16px 0 24px;
+}
+
 /* Player docado — ocupa a mesma ancora do antigo mini-player (rodape). */
 .search-player-dock {
   position: fixed;
