@@ -33,3 +33,34 @@
     </div>
   </div>
 </div>
+
+<!-- Pop-up "Criar nova playlist" (elemento HTML próprio) -->
+<div class="create-overlay" *ngIf="showCreatePopup" (click)="cancelCreatePlaylist()">
+  <div class="create-card" (click)="$event.stopPropagation()">
+    <h2 class="create-title">Nova playlist</h2>
+
+    <form class="create-form" (ngSubmit)="confirmCreatePlaylist()">
+      <input
+        class="create-input"
+        type="text"
+        placeholder="Nome da playlist"
+        name="newPlaylistName"
+        [(ngModel)]="newPlaylistName"
+      />
+
+      <textarea
+        class="create-input create-textarea"
+        placeholder="Descrição opcional"
+        name="newPlaylistDescription"
+        [(ngModel)]="newPlaylistDescription"
+      ></textarea>
+
+      <div class="create-actions">
+        <button type="submit" class="create-btn-action create-btn-confirm">Criar</button>
+        <button type="button" class="create-btn-action create-btn-cancel" (click)="cancelCreatePlaylist()">
+          Cancelar
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

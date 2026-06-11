@@ -1,5 +1,6 @@
 import { Component, Input, Output, EventEmitter, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { IonicModule, ActionSheetController, AlertController, ToastController } from '@ionic/angular';
 import { PlaylistService } from '../../core/services/playlist.service';
 import { Playlist } from '../../shared/models/playlist.model';
@@ -10,7 +11,7 @@ import { Track } from '../../shared/models/track.model';
   templateUrl: './playlists.component.html',
   styleUrls: ['./playlists.component.scss'],
   standalone: true,
-  imports: [CommonModule, IonicModule],
+  imports: [CommonModule, FormsModule, IonicModule],
 })
 export class PlaylistsComponent {
   @Input() open = false;
@@ -23,97 +24,97 @@ export class PlaylistsComponent {
 
   readonly playlists$ = this.playlistService.playlists$;
 
+  // Estado do pop-up "Criar nova playlist" (elemento HTML próprio)
+  showCreatePopup = false;
+  newPlaylistName = '';
+  newPlaylistDescription = '';
+
+  // Estado do pop-up de opções da playlist (3 pontos) — elemento HTML próprio
+  showOptionsPopup = false;
+  optionsPlaylist: Playlist | null = null;
+
   onPlaylistClick(playlist: Playlist): void {
     this.selectPlaylist.emit(playlist);
   }
 
-  async onCreatePlaylist(): Promise<void> {
-    const alert = await this.alertController.create({
-      header: 'Nova playlist',
-      inputs: [
-        {
-          name: 'name',
-          placeholder: 'Nome da playlist',
-          type: 'text'
-        },
-        {
-          name: 'description',
-          placeholder: 'Descrição opcional',
-          type: 'textarea'
-        }
-      ],
-      buttons: [
-        {
-          text: 'Cancelar',
-          role: 'cancel'
-        },
-        {
-          text: 'Criar',
-          handler: (data: { name?: string; description?: string }) => {
-            const name = data.name?.trim();
-
-            if (!name) {
-              return false;
-            }
-
-            this.playlistService.createPlaylist(name, data.description?.trim()).subscribe({
-              next: () => this.presentToast('Playlist criada com sucesso.'),
-              error: () => this.presentToast('Não foi possível criar a playlist.')
-            });
-
-            return true;
-          }
-        }
-      ]
-    });
-
-    await alert.present();
+  onCreatePlaylist(): void {
+    this.newPlaylistName = '';
+    this.newPlaylistDescription = '';
+    this.showCreatePopup = true;
   }
 
-  async onPlaylistOptions(event: Event, playlist: Playlist): Promise<void> {
-    event.stopPropagation();
+  confirmCreatePlaylist(): void {
+    const name = this.newPlaylistName.trim();
 
-    const actionSheet = await this.actionSheetController.create({
-      header: playlist.name,
-      buttons: [
-        {
-          text: 'Ver músicas',
-          icon: 'musical-notes-outline',
-          handler: () => {
-            this.selectPlaylist.emit(playlist);
-          }
-        },
-        {
-          text: 'Renomear',
-          icon: 'pencil-outline',
-          handler: () => {
-            this.promptRenamePlaylist(playlist).catch(() => undefined);
-          }
-        },
-        {
-          text: 'Gerenciar músicas',
-          icon: 'list-outline',
-          handler: () => {
-            this.promptManageTracks(playlist).catch(() => undefined);
-          }
-        },
-        {
-          text: 'Excluir playlist',
-          icon: 'trash-outline',
-          role: 'destructive',
-          handler: () => {
-            this.promptDeletePlaylist(playlist).catch(() => undefined);
-          }
-        },
-        {
-          text: 'Cancelar',
-          icon: 'close-outline',
-          role: 'cancel'
-        }
-      ]
+    if (!name) {
+      return;
+    }
+
+    const description = this.newPlaylistDescription.trim();
+
+    this.closeCreatePopup();
+
+    this.playlistService.createPlaylist(name, description).subscribe({
+      next: () => this.presentToast('Playlist criada com sucesso.'),
+      error: () => this.presentToast('Não foi possível criar a playlist.')
     });
+  }
 
-    await actionSheet.present();
+  cancelCreatePlaylist(): void {
+    this.closeCreatePopup();
+  }
+
+  private closeCreatePopup(): void {
+    this.showCreatePopup = false;
+    this.newPlaylistName = '';
+    this.newPlaylistDescription = '';
+  }
+
+  onPlaylistOptions(event: Event, playlist: Playlist): void {
+    event.stopPropagation();
+    this.optionsPlaylist = playlist;
+    this.showOptionsPopup = true;
+  }
+
+  onOptionViewTracks(): void {
+    const playlist = this.optionsPlaylist;
+    this.closePlaylistOptions();
+
+    if (playlist) {
+      this.selectPlaylist.emit(playlist);
+    }
+  }
+
+  onOptionRename(): void {
+    const playlist = this.optionsPlaylist;
+    this.closePlaylistOptions();
+
+    if (playlist) {
+      this.promptRenamePlaylist(playlist).catch(() => undefined);
+    }
+  }
+
+  onOptionManageTracks(): void {
+    const playlist = this.optionsPlaylist;
+    this.closePlaylistOptions();
+
+    if (playlist) {
+      this.promptManageTracks(playlist).catch(() => undefined);
+    }
+  }
+
+  onOptionDelete(): void {
+    const playlist = this.optionsPlaylist;
+    this.closePlaylistOptions();
+
+    if (playlist) {
+      this.promptDeletePlaylist(playlist).catch(() => undefined);
+    }
+  }
+
+  closePlaylistOptions(): void {
+    this.showOptionsPopup = false;
+    this.optionsPlaylist = null;
   }
 
   private async promptRenamePlaylist(playlist: Playlist): Promise<void> {

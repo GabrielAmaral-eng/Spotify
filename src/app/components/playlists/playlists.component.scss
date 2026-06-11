@@ -178,3 +178,133 @@
   font-size: 13px;
   color: rgba(255, 255, 255, 0.4);
 }
+
+/* ============================================================
+ * Pop-up "Criar nova playlist" (elemento HTML próprio)
+ * Container/título no estilo do .playlists-panel, campos no
+ * estilo dos campos do login e botões no estilo do pop-up de
+ * confirmação do login.
+ * ============================================================ */
+.create-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.create-card {
+  box-sizing: border-box;
+  width: 33vw;
+  max-width: 33vw;
+  padding: 24px 0 16px;
+  background: rgba(10, 30, 24, 0.72);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1.5px solid rgba(255, 255, 255, 0.85);
+  border-radius: 20px;
+  box-shadow:
+    0 0 18px rgba(255, 255, 255, 0.18),
+    0 0 48px rgba(255, 255, 255, 0.07),
+    0 8px 32px rgba(0, 0, 0, 0.45);
+}
+
+.create-title {
+  margin: 0;
+  padding: 0 20px;
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.5));
+}
+
+.create-form {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Campos: mesma linguagem dos campos de e-mail/senha do login */
+.create-input {
+  box-sizing: border-box;
+  display: block;
+  margin: 14px 20px 0;
+  padding: 12px 14px;
+  background: transparent;
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  border-radius: 14px;
+  color: #ffffff;
+  font: inherit;
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.35));
+  transition: filter 0.2s ease, transform 0.2s ease;
+
+  &::placeholder {
+    color: rgba(255, 255, 255, 0.6);
+  }
+
+  &:hover,
+  &:focus {
+    outline: none;
+    filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.8));
+    transform: scale(1.01);
+  }
+}
+
+.create-textarea {
+  min-height: 72px;
+  resize: none;
+}
+
+/* Botões: estilo do pop-up de confirmação do login */
+.create-actions {
+  display: flex;
+  flex-direction: row;
+  gap: 15px;
+  margin-top: 18px;
+  padding: 0 20px;
+}
+
+.create-btn-action {
+  box-sizing: border-box;
+  flex: 1;
+  padding: 15px;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-transform: none;
+  transition: filter 0.2s ease, transform 0.15s ease, background 0.2s ease;
+
+  &:active {
+    transform: scale(0.97);
+  }
+}
+
+/* "Criar" — neutro/branco */
+.create-btn-confirm {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.75);
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+  }
+}
+
+/* "Cancelar" — vermelho */
+.create-btn-cancel {
+  background: rgba(255, 80, 80, 0.15);
+  border: 1px solid rgba(255, 80, 80, 0.3);
+  color: #ff8a8a;
+
+  &:hover {
+    background: rgba(255, 80, 80, 0.25);
+    color: #ffaaaa;
+    filter: drop-shadow(0 0 10px rgba(255, 80, 80, 0.3));
+  }
+}
