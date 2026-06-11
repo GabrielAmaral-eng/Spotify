@@ -1,7 +1,7 @@
 import { Component, Input, Output, EventEmitter, HostListener, ElementRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { IonicModule, ActionSheetController, AlertController, ToastController } from '@ionic/angular';
+import { IonicModule, ToastController } from '@ionic/angular';
 import { PlaylistService } from '../../core/services/playlist.service';
 import { Playlist } from '../../shared/models/playlist.model';
 import { Track } from '../../shared/models/track.model';
@@ -19,8 +19,6 @@ export class PlaylistsComponent {
   @Output() requestClose = new EventEmitter<void>();
 
   private readonly playlistService = inject(PlaylistService);
-  private readonly actionSheetController = inject(ActionSheetController);
-  private readonly alertController = inject(AlertController);
   private readonly toastController = inject(ToastController);
   private readonly elementRef = inject<ElementRef<HTMLElement>>(ElementRef);
 
@@ -40,6 +38,21 @@ export class PlaylistsComponent {
   // Estado do pop-up de confirmação de exclusão de playlist — elemento HTML próprio
   showDeletePopup = false;
   deletePlaylistTarget: Playlist | null = null;
+
+  // Estado do pop-up "Gerenciar músicas" — elemento HTML próprio
+  showManagePopup = false;
+  managePlaylist: Playlist | null = null;
+  manageTracks: Track[] = [];
+
+  // Confirmação de remoção de música (dentro do gerenciar músicas)
+  showRemoveTrackPopup = false;
+  removeTrackTarget: Track | null = null;
+
+  // Estado do pop-up "Renomear playlist" — elemento HTML próprio
+  showRenamePopup = false;
+  renamePlaylistTarget: Playlist | null = null;
+  renameName = '';
+  renameDescription = '';
 
   onPlaylistClick(playlist: Playlist): void {
     this.selectPlaylist.emit(playlist);
@@ -116,7 +129,7 @@ export class PlaylistsComponent {
     this.closePlaylistOptions();
 
     if (playlist) {
-      this.promptRenamePlaylist(playlist).catch(() => undefined);
+      this.openRenamePlaylist(playlist);
     }
   }
 
@@ -125,7 +138,7 @@ export class PlaylistsComponent {
     this.closePlaylistOptions();
 
     if (playlist) {
-      this.promptManageTracks(playlist).catch(() => undefined);
+      this.openManageTracks(playlist);
     }
   }
 
@@ -143,46 +156,44 @@ export class PlaylistsComponent {
     this.optionsPlaylist = null;
   }
 
-  private async promptRenamePlaylist(playlist: Playlist): Promise<void> {
-    const alert = await this.alertController.create({
-      header: 'Renomear playlist',
-      inputs: [
-        {
-          name: 'name',
-          placeholder: 'Novo nome',
-          type: 'text',
-          value: playlist.name
-        },
-        {
-          name: 'description',
-          placeholder: 'Descrição',
-          type: 'textarea',
-          value: playlist.description ?? ''
-        }
-      ],
-      buttons: [
-        { text: 'Cancelar', role: 'cancel' },
-        {
-          text: 'Salvar',
-          handler: (data: { name?: string; description?: string }) => {
-            const name = data.name?.trim();
+  private openRenamePlaylist(playlist: Playlist): void {
+    this.renamePlaylistTarget = playlist;
+    this.renameName = playlist.name;
+    this.renameDescription = playlist.description ?? '';
+    this.showRenamePopup = true;
+  }
 
-            if (!name) {
-              return false;
-            }
+  confirmRenamePlaylist(): void {
+    const name = this.renameName.trim();
 
-            this.playlistService.updatePlaylist(playlist.id, name, data.description?.trim()).subscribe({
-              next: () => this.presentToast('Playlist renomeada.'),
-              error: () => this.presentToast('Não foi possível renomear a playlist.')
-            });
+    if (!name) {
+      return;
+    }
 
-            return true;
-          }
-        }
-      ]
+    const playlist = this.renamePlaylistTarget;
+    const description = this.renameDescription.trim();
+
+    this.closeRenamePopup();
+
+    if (!playlist) {
+      return;
+    }
+
+    this.playlistService.updatePlaylist(playlist.id, name, description).subscribe({
+      next: () => this.presentToast('Playlist renomeada.'),
+      error: () => this.presentToast('Não foi possível renomear a playlist.')
     });
+  }
 
-    await alert.present();
+  cancelRenamePlaylist(): void {
+    this.closeRenamePopup();
+  }
+
+  private closeRenamePopup(): void {
+    this.showRenamePopup = false;
+    this.renamePlaylistTarget = null;
+    this.renameName = '';
+    this.renameDescription = '';
   }
 
   private openDeletePlaylistConfirm(playlist: Playlist): void {
@@ -213,57 +224,62 @@ export class PlaylistsComponent {
     this.deletePlaylistTarget = null;
   }
 
-  private async promptManageTracks(playlist: Playlist): Promise<void> {
+  private openManageTracks(playlist: Playlist): void {
     if (!playlist.tracks || playlist.tracks.length === 0) {
       this.presentToast('Esta playlist não possui músicas.');
       return;
     }
 
-    const actionSheet = await this.actionSheetController.create({
-      header: `Músicas de "${playlist.name}"`,
-      buttons: [
-        ...playlist.tracks.map((track: Track) => ({
-          text: `${track.title} — ${track.artist}`,
-          icon: 'remove-circle-outline',
-          role: undefined as string | undefined,
-          handler: () => {
-            this.promptRemoveTrack(playlist, track).catch(() => undefined);
-          }
-        })),
-        {
-          text: 'Fechar',
-          icon: 'close-outline',
-          role: 'cancel'
-        }
-      ]
-    });
-
-    await actionSheet.present();
+    this.managePlaylist = playlist;
+    this.manageTracks = [...playlist.tracks];
+    this.showManagePopup = true;
   }
 
-  private async promptRemoveTrack(playlist: Playlist, track: Track): Promise<void> {
-    const alert = await this.alertController.create({
-      header: 'Remover música',
-      message: `Remover "${track.title}" de "${playlist.name}"?`,
-      buttons: [
-        { text: 'Cancelar', role: 'cancel' },
-        {
-          text: 'Remover',
-          role: 'destructive',
-          handler: () => {
-            this.playlistService.removeTrackFromPlaylist(playlist.id, track.id).subscribe({
-              next: () => {
-                this.presentToast('Música removida da playlist.');
-                this.playlistService.loadPlaylists().subscribe();
-              },
-              error: () => this.presentToast('Não foi possível remover a música.')
-            });
-          }
-        }
-      ]
-    });
+  removeManagedTrack(track: Track): void {
+    this.removeTrackTarget = track;
+    this.showRemoveTrackPopup = true;
+  }
 
-    await alert.present();
+  confirmRemoveTrack(): void {
+    const playlist = this.managePlaylist;
+    const track = this.removeTrackTarget;
+    this.closeRemoveTrackPopup();
+
+    if (!playlist || !track) {
+      return;
+    }
+
+    this.playlistService.removeTrackFromPlaylist(playlist.id, track.id).subscribe({
+      next: () => {
+        this.presentToast('Música removida da playlist.');
+        this.playlistService.loadPlaylists().subscribe();
+        this.manageTracks = this.manageTracks.filter((t) => t.id !== track.id);
+
+        if (this.manageTracks.length === 0) {
+          this.closeManagePopup();
+        }
+      },
+      error: () => this.presentToast('Não foi possível remover a música.')
+    });
+  }
+
+  cancelRemoveTrack(): void {
+    this.closeRemoveTrackPopup();
+  }
+
+  private closeRemoveTrackPopup(): void {
+    this.showRemoveTrackPopup = false;
+    this.removeTrackTarget = null;
+  }
+
+  closeManagePopup(): void {
+    this.showManagePopup = false;
+    this.managePlaylist = null;
+    this.manageTracks = [];
+  }
+
+  trackByTrackId(_index: number, track: Track): string {
+    return track.id;
   }
 
   private presentToast(message: string): void {
