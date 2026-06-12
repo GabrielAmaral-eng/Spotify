@@ -11,7 +11,9 @@ const frontendUrl = env.FRONTEND_URL;
 const allowedOrigins = new Set([
   frontendUrl,
   'http://localhost:8100',
-  'http://127.0.0.1:8100'
+  'http://127.0.0.1:8100',
+  'capacitor://localhost',   // Capacitor iOS WebView
+  'http://localhost',         // Capacitor Android WebView
 ]);
 const localNetworkOrigin =
   /^http:\/\/(?:10(?:\.\d{1,3}){3}|192\.168(?:\.\d{1,3}){2}|172\.(?:1[6-9]|2\d|3[01])(?:\.\d{1,3}){2}):8100$/;
