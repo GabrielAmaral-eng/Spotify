@@ -233,12 +233,6 @@ O backend está hospedado no [Render](https://render.com) como um Web Service.
 
 ---
 
-## 👥 Autores
-
-- **Gabriel Amaral** — [@GabrielAmaral-eng](https://github.com/GabrielAmaral-eng)
-
----
-
 ## 📄 Licença
 
 Este projeto é de uso acadêmico/pessoal.
