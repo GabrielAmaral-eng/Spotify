@@ -1,0 +1,534 @@
+\documentclass[12pt,a4paper,oneside]{report}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[brazil]{babel}
+\usepackage{lmodern,microtype}
+\usepackage[a4paper,top=2.7cm,bottom=2.5cm,left=3cm,right=2.2cm]{geometry}
+\usepackage{setspace,graphicx,booktabs,longtable,array,tabularx,enumitem,xcolor,listings,titlesec,hyperref,fancyhdr,float,amsmath,caption}
+\definecolor{melodixblue}{HTML}{244A73}
+\definecolor{codebg}{HTML}{F4F6F8}
+\definecolor{codeframe}{HTML}{D4DCE4}
+\definecolor{muted}{HTML}{536273}
+\hypersetup{colorlinks=true,linkcolor=melodixblue,urlcolor=melodixblue,citecolor=melodixblue,pdftitle={Documentação Técnica do Melodix},pdfsubject={Arquitetura, APIs, segurança, persistência e áudio}}
+\setstretch{1.18}
+\setlength{\parindent}{1.25cm}
+\setlength{\parskip}{0.25em}
+\setlist[itemize]{leftmargin=1.2cm,itemsep=0.2em}
+\setlist[enumerate]{leftmargin=1.2cm,itemsep=0.2em}
+\renewcommand{\arraystretch}{1.2}
+\titleformat{\chapter}[display]{\normalfont\bfseries\color{melodixblue}}{\large\chaptername\ \thechapter}{0.5em}{\Huge}
+\titleformat{\section}{\normalfont\Large\bfseries\color{melodixblue}}{\thesection}{0.7em}{}
+\titleformat{\subsection}{\normalfont\large\bfseries}{\thesubsection}{0.7em}{}
+\titleformat{\subsubsection}{\normalfont\normalsize\bfseries}{\thesubsubsection}{0.7em}{}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small Documentação Técnica do Melodix}
+\fancyhead[R]{\small Projeto de streaming musical}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\lstdefinestyle{codigo}{basicstyle=\ttfamily\small,backgroundcolor=\color{codebg},frame=single,rulecolor=\color{codeframe},breaklines=true,columns=fullflexible,keepspaces=true,showstringspaces=false,tabsize=2,numbers=left,numberstyle=\tiny\color{muted},xleftmargin=1.5em,framexleftmargin=1em}
+\lstset{style=codigo}
+\newcommand{\arquivo}[1]{\texttt{\detokenize{#1}}}
+\begin{document}
+\begin{titlepage}
+\centering
+\vspace*{2.2cm}
+{\Large DOCUMENTAÇÃO TÉCNICA\par}
+\vspace{1.1cm}
+{\Huge\bfseries\color{melodixblue} Melodix\par}
+\vspace{0.6cm}
+{\LARGE Aplicação de streaming musical\par}
+\vspace{1.8cm}
+\rule{0.78\textwidth}{0.6pt}\par
+\vspace{0.7cm}
+{\large Arquitetura, tecnologias, serviços, APIs, segurança, persistência e processamento de áudio\par}
+\vspace{0.7cm}
+\rule{0.78\textwidth}{0.6pt}\par
+\vfill
+{\large Documento elaborado a partir da inspeção do código-fonte, arquivos de configuração, rotas e migrações SQL.\par}
+\vspace{1.4cm}
+{\large Outubro de 2026\par}
+\end{titlepage}
+\pagenumbering{roman}
+\tableofcontents
+\listoftables
+\clearpage
+\pagenumbering{arabic}
+
+\chapter*{Apresentação}
+\addcontentsline{toc}{chapter}{Apresentação}
+Este documento descreve a implementação técnica do Melodix, aplicação de reprodução e organização de músicas com interface web e possibilidade de empacotamento para Android. A análise considera o README, arquivos \arquivo{package.json}, serviços Angular, módulos Express, configurações do Supabase e migrações SQL.
+
+O Melodix utiliza o catálogo público do Audius para localizar faixas e obter endereços de reprodução. A autenticação e a biblioteca pessoal são apoiadas pelo Supabase. O navegador reproduz o áudio por meio de um elemento HTML de áudio e, quando as condições de origem permitem, disponibiliza amostras espectrais para o visualizador construído com a Web Audio API.
+
+As versões indicadas são as declarações de dependência encontradas nos manifestos do projeto. Faixas com \texttt{\string^} ou \texttt{\string~} representam intervalos semver, não uma confirmação da versão efetivamente instalada. O README informa Node.js 18 ou superior.
+
+\chapter{Visão geral do sistema}
+\section{Objetivo e funcionalidades}
+O Melodix reúne pesquisa e reprodução musical com recursos de biblioteca individual. O README descreve:
+\begin{itemize}
+\item cadastro e autenticação por e-mail e senha via Supabase Auth;
+\item pesquisa de faixas no catálogo Audius;
+\item paginação dos resultados e carregamento adicional durante a rolagem;
+\item reprodução, pausa, faixa anterior e próxima, progresso e volume;
+\item visualizador de áudio com Web Audio API e alternativa animada em CSS;
+\item criação e manutenção de playlists e músicas favoritas;
+\item execução em navegador e empacotamento Android por Capacitor.
+\end{itemize}
+
+\section{Limites funcionais observados}
+O catálogo e a origem do áudio são providos pelo Audius. O projeto não mantém um servidor próprio para armazenar ou distribuir os arquivos musicais. O backend Melodix intermedeia consultas de catálogo e mantém os dados da biblioteca, enquanto o cliente de áudio acessa diretamente o endereço de streaming.
+
+Existe uma migração SQL denominada \arquivo{20260518002513\_spotify\_connections.sql}, que cria uma tabela para conexões Spotify. A existência dessa tabela, isoladamente, não comprova um fluxo OAuth funcional. Na inspeção realizada, não foi identificada implementação correspondente de autorização, callback e renovação de tokens Spotify. A integração de catálogo e reprodução efetivamente identificada está baseada no Audius.
+
+\section{Organização em camadas}
+A solução divide-se em três áreas:
+\begin{enumerate}
+\item \textbf{Frontend}: Angular e Ionic, responsáveis por telas, interação, estado de reprodução e chamadas HTTP.
+\item \textbf{Backend}: API HTTP Express e TypeScript, responsável por validar requisições, autenticar operações da biblioteca, consultar Audius e acessar Supabase.
+\item \textbf{Serviços externos e persistência}: Audius para catálogo e stream, Supabase Auth para identidade e PostgreSQL para dados da biblioteca.
+\end{enumerate}
+
+\chapter{Tecnologias, versões e ferramentas}
+\section{Frontend}
+A aplicação cliente utiliza Angular 20, Ionic 8 e TypeScript. Angular organiza componentes, serviços, rotas e interceptors; Ionic fornece componentes visuais adaptados a aplicações web e móveis.
+
+\begin{longtable}{p{0.30\textwidth}p{0.22\textwidth}p{0.40\textwidth}}
+\toprule
+\textbf{Dependência} & \textbf{Versão declarada} & \textbf{Responsabilidade}\\
+\midrule
+Angular & \texttt{\string^20.0.0} & Framework da aplicação cliente.\\
+Angular CLI & \texttt{20.3.26} & Compilação e ferramentas de desenvolvimento.\\
+Ionic Angular & \texttt{\string^8.0.0} & Componentes de interface.\\
+RxJS & \texttt{\string~7.8.0} & Fluxos assíncronos e estado observável.\\
+TypeScript & \texttt{\string~5.9.0} & Tipagem e compilação do frontend.\\
+Capacitor Core & \texttt{8.3.4} & Ponte entre aplicação web e recursos nativos.\\
+Capacitor CLI & \texttt{8.3.4} & Sincronização do projeto nativo.\\
+Supabase JS & \texttt{\string^2.105.4} & Cliente JavaScript do Supabase.\\
+Ionicons & \texttt{\string^7.0.0} & Ícones da interface.\\
+\bottomrule
+\end{longtable}
+O manifesto também declara Jasmine, Karma, ESLint e ferramentas Angular ESLint para testes e qualidade.
+
+\section{Backend}
+O backend é executado em Node.js, utiliza Express 4 e é escrito em TypeScript, compilado para JavaScript CommonJS.
+
+\begin{longtable}{p{0.30\textwidth}p{0.22\textwidth}p{0.40\textwidth}}
+\toprule
+\textbf{Dependência} & \textbf{Versão declarada} & \textbf{Responsabilidade}\\
+\midrule
+Express & \texttt{\string^4.21.2} & Servidor HTTP e roteamento.\\
+TypeScript & \texttt{\string^5.7.2} & Tipagem e compilação.\\
+tsx & \texttt{\string^4.19.2} & Execução de TypeScript em desenvolvimento.\\
+Axios & \texttt{\string^1.7.9} & Requisições HTTP ao Audius.\\
+Supabase JS & \texttt{\string^2.105.4} & Integração com Auth e PostgreSQL.\\
+Zod & \texttt{\string^3.24.1} & Validação de variáveis de ambiente.\\
+cors & \texttt{\string^2.8.5} & Política de compartilhamento entre origens.\\
+dotenv & \texttt{\string^16.4.7} & Carregamento de variáveis de ambiente.\\
+\bottomrule
+\end{longtable}
+O \arquivo{backend/tsconfig.json} define ES2022, CommonJS, resolução Node, modo estrito e saída em \arquivo{dist}. O README informa Node.js 18 ou superior.
+
+\section{Ambiente e publicação}
+Para desenvolvimento, o frontend é iniciado com \texttt{ionic serve}; o backend pode ser iniciado por \texttt{npm run backend:dev}. A compilação do backend utiliza \texttt{npm run build} e a execução de produção utiliza \texttt{node dist/server.js}.
+
+O README registra hospedagem do backend no Render, com diretório raiz \arquivo{backend}, comando de build \texttt{npm install \&\& npm run build} e comando de inicialização \texttt{npm start}. Esses dados representam a configuração documentada no repositório, não uma verificação independente do estado atual do serviço remoto.
+
+\section{Aplicativo Android}
+O README descreve a geração do aplicativo Android pelo Capacitor. O processo consiste em compilar a aplicação Ionic em produção, sincronizar os arquivos nativos com \texttt{npx cap sync android} e gerar APK de depuração pelo Gradle. A configuração efetiva do SDK depende do ambiente Android Studio instalado.
+
+\chapter{Arquitetura do frontend}
+\section{Estrutura de diretórios}
+A organização principal identificada é:
+\begin{lstlisting}
+src/
+  app/
+    pages/
+      home/ search/ library/ playlist/ player/ login/
+    components/
+      player/ audio-visualizer/ playlists/
+    core/
+      services/ interceptors/ guards/
+    shared/
+      components/ models/ directives/ pipes/
+  environments/
+\end{lstlisting}
+As páginas representam contextos de navegação. Os componentes encapsulam partes reutilizáveis da interface. A pasta \arquivo{core} concentra serviços e mecanismos transversais. A pasta \arquivo{shared} reúne modelos, diretivas, pipes e componentes compartilhados.
+
+\section{CoreModule e injeção de dependências}
+O arquivo \arquivo{src/app/core/core.module.ts} registra \texttt{SupabaseService}, \texttt{AuthService}, \texttt{AudiusService}, \texttt{PlayerService} e \texttt{PlaylistService}. Registra também \texttt{ApiInterceptor} no token \texttt{HTTP\_INTERCEPTORS}, com \texttt{multi: true}.
+
+O construtor utiliza \texttt{@Optional()} e \texttt{@SkipSelf()} para detectar uma importação anterior do módulo. Se já houver instância-pai, lança exceção. A verificação evita registros duplicados dos serviços centrais.
+
+\section{Serviços principais}
+\subsection{AudiusService}
+O serviço Angular \arquivo{src/app/core/services/audius.service.ts} utiliza \texttt{HttpClient}. O método \texttt{searchTracks(query, limit, offset)} monta parâmetros HTTP e consulta \texttt{/audius/search}. A resposta é transformada em \texttt{tracks} e \texttt{hasMore}. O método \texttt{getTrack(id)} consulta \texttt{/audius/track/:id}. Ambos retornam \texttt{Observable}, permitindo composição com operadores RxJS.
+
+\subsection{PlayerService}
+O serviço \arquivo{src/app/core/services/player.service.ts} centraliza a reprodução. Mantém uma instância de \texttt{Audio} e publica estados por \texttt{BehaviorSubject} e \texttt{Subject}. Entre os estados observáveis estão faixa atual, reprodução, progresso, carregamento, volume, mensagens e nó analisador.
+
+\texttt{BehaviorSubject} entrega o último valor conhecido a novos assinantes. \texttt{Subject} é usado para eventos que não precisam reter estado, como solicitações de faixa anterior ou próxima. O serviço escuta \texttt{timeupdate}, \texttt{ended}, \texttt{waiting} e \texttt{playing} para atualizar os estados da interface.
+
+\subsection{PlaylistService e AuthService}
+O \texttt{PlaylistService} concentra operações da biblioteca e favoritos. O \texttt{AuthService} concentra o fluxo de autenticação do cliente com Supabase. O interceptor HTTP aplica comportamento transversal às chamadas. A implementação exata de cada cabeçalho deve ser conferida diretamente no interceptor em futuras alterações.
+
+\section{Componentes de interface}
+O \texttt{PlayerComponent} oferece play/pause, navegação, volume, progresso, favoritos e inclusão em playlists. A propriedade \texttt{embedded} permite apresentação compacta na tela de busca.
+
+O componente raiz \texttt{AppComponent} combina a faixa atual com eventos de navegação. O mini-player aparece quando existe faixa selecionada e a rota não começa com \texttt{/search}. Essa regra utiliza \texttt{combineLatest}, \texttt{map}, \texttt{filter} e \texttt{startWith}.
+
+A tela de busca apresenta a roda de seleção, lista de resultados e carregamento de páginas adicionais. O template usa \texttt{trackBy} para identificar itens pela identidade da faixa e reduzir atualizações desnecessárias.
+
+\section{Ciclo de vida e inscrições}
+No componente raiz, \texttt{destroy\$} é utilizado com \texttt{takeUntil} para encerrar inscrições quando o componente é destruído. O método \texttt{ngOnDestroy} emite e conclui o Subject.
+
+O visualizador encerra sua inscrição RxJS, desconecta o \texttt{ResizeObserver} e cancela o ciclo de animação com \texttt{cancelAnimationFrame}. Isso evita observadores ativos após a remoção do componente.
+
+\chapter{Arquitetura do backend}
+\section{Estrutura de diretórios}
+\begin{lstlisting}
+backend/
+  src/
+    server.ts
+    config/env.ts
+    lib/supabase.ts
+    middlewares/error.middleware.ts
+    modules/
+      auth/auth.middleware.ts
+      audius/
+        audius-http.ts
+        audius.controller.ts
+        audius.routes.ts
+        audius.service.ts
+      library/
+        library.controller.ts
+        library.routes.ts
+        library.schemas.ts
+        library.service.ts
+    types/track.ts
+    utils/async-handler.ts
+    utils/http-error.ts
+\end{lstlisting}
+A divisão modular separa transporte HTTP, regras de negócio, integração externa, autenticação, configuração e utilitários.
+
+\section{Inicialização do servidor}
+O arquivo \arquivo{backend/src/server.ts} cria a aplicação Express e lê porta e URL do frontend a partir da configuração validada. Configura CORS, interpreta JSON com limite de 1 MB, registra \texttt{/health}, monta os roteadores \texttt{/library} e \texttt{/audius} e instala o middleware central de erro.
+
+A ordem é relevante: CORS e parser JSON são instalados antes dos roteadores; o middleware de erro é registrado depois deles para receber falhas encaminhadas pelas rotas e controladores.
+
+\section{Controladores, serviços e utilitários}
+As rotas associam métodos HTTP a controladores. Os controladores interpretam parâmetros, corpo e identidade do usuário, delegando operações aos serviços. Os serviços concentram chamadas ao Audius ou Supabase.
+
+O utilitário \texttt{asyncHandler} encaminha rejeições de funções assíncronas ao fluxo de erro do Express. \texttt{HttpError} representa falhas HTTP com mensagem e status. O middleware centraliza as respostas de erro.
+
+\section{Configuração por ambiente}
+O arquivo \arquivo{backend/src/config/env.ts} executa \texttt{dotenv.config()} e valida \texttt{process.env} com Zod. São definidos:
+\begin{itemize}
+\item \texttt{PORT}: inteiro positivo, padrão 3000;
+\item \texttt{FRONTEND\_URL}: URL válida, padrão \texttt{http://localhost:8100};
+\item \texttt{SUPABASE\_URL}: URL obrigatória;
+\item \texttt{SUPABASE\_PUBLISHABLE\_KEY}: chave pública obrigatória;
+\item \texttt{SUPABASE\_SERVICE\_ROLE\_KEY}: chave de serviço obrigatória;
+\item \texttt{AUDIUS\_APP\_NAME}: nome do app, padrão Melodix.
+\end{itemize}
+A chamada \texttt{envSchema.parse(process.env)} interrompe a inicialização quando variáveis obrigatórias não atendem ao esquema, antecipando falhas de configuração.
+
+\chapter{APIs e integrações externas}
+\section{API interna}
+As rotas são agrupadas por domínio. O roteador Audius expõe consulta pública do catálogo. O roteador Library aplica autenticação antes de registrar operações.
+
+\begin{longtable}{p{0.13\textwidth}p{0.48\textwidth}p{0.33\textwidth}}
+\toprule
+\textbf{Método} & \textbf{Rota} & \textbf{Descrição}\\
+\midrule
+GET & \texttt{/health} & Estado básico do backend.\\
+GET & \texttt{/audius/search} & Pesquisa de faixas.\\
+GET & \texttt{/audius/track/:id} & Consulta de faixa por identificador.\\
+GET & \texttt{/library/playlists} & Lista playlists do usuário.\\
+POST & \texttt{/library/playlists} & Cria playlist.\\
+GET & \texttt{/library/playlists/:id} & Consulta playlist e faixas.\\
+PUT & \texttt{/library/playlists/:id} & Atualiza playlist.\\
+DELETE & \texttt{/library/playlists/:id} & Exclui playlist.\\
+POST & \texttt{/library/playlists/:id/tracks} & Adiciona ou atualiza faixa.\\
+DELETE & \texttt{/library/playlists/:id/tracks/:trackId} & Remove faixa.\\
+GET & \texttt{/library/favorites} & Lista favoritos.\\
+POST & \texttt{/library/favorites} & Registra favorito.\\
+DELETE & \texttt{/library/favorites/:trackId} & Remove favorito.\\
+\bottomrule
+\end{longtable}
+As rotas \texttt{/library} são protegidas por \texttt{authMiddleware}. As rotas \texttt{/audius} não aplicam esse middleware, pois a pesquisa do catálogo é pública na implementação observada.
+
+\section{Integração Audius}
+O serviço \arquivo{backend/src/modules/audius/audius.service.ts} consulta o gateway \url{https://api.audius.co}. A pesquisa utiliza \texttt{/v1/tracks/search}, enviando \texttt{query}, \texttt{app\_name}, \texttt{limit} e \texttt{offset}. A consulta individual utiliza \texttt{/v1/tracks/:id}.
+
+A resposta externa é convertida para o modelo interno \texttt{Track}. \texttt{isPlayable} rejeita faixas sem identificador, indisponíveis ou com stream restrito. \texttt{normalizeTrack} converte título, artista, arte, duração e gênero para o formato interno.
+
+O endereço de reprodução é produzido por \texttt{buildStreamUrl}:
+\begin{lstlisting}
+https://api.audius.co/v1/tracks/{trackId}/stream?app_name={appName}
+\end{lstlisting}
+O código comenta que esse endpoint estável pode responder com redirecionamento HTTP para o conteúdo de áudio. A URL é persistida na biblioteca como referência de reprodução, não como arquivo local.
+
+A pesquisa calcula \texttt{hasMore} pela quantidade bruta de itens recebidos antes do filtro de faixas reproduzíveis. Assim, uma página filtrada vazia não é tratada automaticamente como fim do catálogo quando a API ainda retorna itens.
+
+\section{Cliente HTTP e falhas}
+A integração é isolada em \arquivo{audius-http.ts}, que utiliza Axios. Esse isolamento concentra configurações e tratamento da comunicação externa. A consulta individual lança erro 404 quando a resposta não contém identificador válido de faixa.
+
+\section{Supabase Auth}
+O Supabase Auth é utilizado para autenticação por e-mail e senha, conforme o README. No backend, o middleware lê \texttt{Authorization}, extrai o token no formato Bearer e chama \texttt{supabaseAuthClient.auth.getUser(accessToken)}. Token ausente, inválido ou expirado resulta em HTTP 401. Após validação, o identificador do usuário e o token são anexados à requisição.
+
+\chapter{CORS e comunicação entre origens}
+\section{Política implementada}
+O servidor configura CORS por meio do pacote \texttt{cors}. A lista explícita de origens inclui \texttt{FRONTEND\_URL}, endereços locais e origens usadas pelas WebViews do Capacitor:
+\begin{itemize}
+\item \texttt{http://localhost:8100} e \texttt{http://127.0.0.1:8100};
+\item \texttt{capacitor://localhost};
+\item \texttt{http://localhost} e \texttt{https://localhost}.
+\end{itemize}
+Há também expressão regular para permitir endereços HTTP de rede privada nas faixas 10.x.x.x, 192.168.x.x e 172.16.x.x a 172.31.x.x, desde que utilizem a porta 8100. Requisições sem cabeçalho Origin também são aceitas. Origens não autorizadas recebem erro de CORS. A opção \texttt{credentials: true} habilita requisições com credenciais no contexto CORS, mantendo a validação da origem.
+
+\section{O que CORS faz e o que não faz}
+CORS é um mecanismo aplicado pelos navegadores para controlar se uma página pode ler respostas de outra origem. Não é autenticação, não criptografa dados e não torna confiável uma origem externa. A política CORS do backend controla o acesso do frontend à API Melodix; ela não concede, por si só, permissão para o navegador ler o áudio servido pelo Audius.
+
+A leitura de amostras de áudio de outra origem depende de a resposta do recurso atender às regras de compartilhamento entre origens. Por isso, o cliente define \texttt{audio.crossOrigin = 'anonymous'} antes de atribuir a URL ao elemento de áudio. O servidor de mídia externo precisa fornecer cabeçalhos CORS adequados.
+
+\section{Considerações sobre a lista de origens}
+A expressão regular para redes privadas é uma conveniência para desenvolvimento e uso em rede local. Em implantação pública, convém avaliar se essa amplitude é necessária e restringir a lista às origens efetivamente utilizadas. CORS não substitui autenticação e autorização.
+
+\chapter{Reprodução e streaming de áudio}
+\section{Modelo de distribuição}
+O Melodix não armazena os bytes das músicas no PostgreSQL. O backend consulta o Audius e devolve metadados e uma URL de stream. O navegador configura o elemento \texttt{HTMLAudioElement} com essa URL e solicita o conteúdo diretamente ao serviço externo.
+
+Esse desenho reduz a responsabilidade de armazenamento e transferência de mídia do backend Melodix. A biblioteca persiste metadados suficientes para apresentar e localizar novamente uma faixa, além da URL de reprodução. A disponibilidade depende do serviço Audius e das condições de acesso ao stream.
+
+\section{Sequência de reprodução}
+\begin{enumerate}
+\item O usuário seleciona uma faixa nos resultados.
+\item O frontend recebe o objeto \texttt{Track}, incluindo \texttt{previewUrl}.
+\item O \texttt{PlayerService} atualiza a faixa atual e zera o progresso quando há mudança de faixa.
+\item O serviço prepara o grafo Web Audio na primeira reprodução, dentro de uma ação do usuário.
+\item O elemento de áudio recebe a URL e executa \texttt{play()}.
+\item Os eventos \texttt{waiting} e \texttt{playing} atualizam carregamento e reprodução.
+\item \texttt{timeupdate} atualiza o progresso da interface.
+\item \texttt{ended} desativa reprodução e carregamento e define o progresso como 100\%.
+\end{enumerate}
+
+\section{Controles e estados}
+O serviço oferece reprodução, pausa, volume e busca por posição. O volume é recebido como percentual, limitado a 0--100 e convertido para 0--1, intervalo esperado pelo elemento de áudio. O progresso é expresso em percentual e convertido em segundos pela duração da faixa.
+
+O player publica solicitações de faixa anterior e próxima. A fila é mantida pela lógica da tela de busca, que reage aos eventos e escolhe a faixa correspondente.
+
+\section{Falhas de reprodução}
+Quando uma faixa não possui \texttt{previewUrl}, o serviço limpa a reprodução e publica mensagem de indisponibilidade. A rejeição de \texttt{audio.play()} também é tratada. O grafo Web Audio é inicializado uma única vez por elemento de áudio. A proteção \texttt{audioGraphInitialized} evita chamadas repetidas a \texttt{createMediaElementSource} para o mesmo elemento.
+
+\chapter{Visualização e análise de frequência}
+\section{Grafo Web Audio}
+O visualizador é implementado em \arquivo{src/app/components/audio-visualizer/audio-visualizer.component.ts}. O serviço de reprodução constrói o seguinte grafo:
+\begin{lstlisting}
+HTMLAudioElement
+      |
+      v
+MediaElementAudioSourceNode
+      |
+      v
+AnalyserNode
+      |
+      v
+AudioContext.destination
+\end{lstlisting}
+O \texttt{AudioContext} representa o contexto de processamento. \texttt{MediaElementAudioSourceNode} conecta o elemento de áudio ao grafo. \texttt{AnalyserNode} obtém dados de frequência sem interromper a saída. A conexão com \texttt{destination} mantém o sinal encaminhado à saída de áudio.
+
+\section{Parâmetros do analisador}
+O código configura \texttt{analyserNode.fftSize = 64} e \texttt{smoothingTimeConstant = 0.8}. O tamanho FFT determina a resolução da análise. Para esse valor, \texttt{frequencyBinCount} contém 32 posições, metade de \texttt{fftSize}. O parâmetro de suavização reduz mudanças abruptas entre quadros consecutivos.
+
+\section{Extração dos dados de frequência}
+A cada quadro, o componente executa:
+\begin{lstlisting}
+analyser.getByteFrequencyData(data);
+\end{lstlisting}
+O método preenche um vetor de bytes com magnitudes de frequência no intervalo de 0 a 255. O componente normaliza cada posição dividindo por 255, obtendo intensidade entre 0 e 1.
+
+O código utiliza até 85\% dos bins disponíveis, descartando a parte mais aguda do espectro. Cada barra seleciona um bin proporcional à sua posição e converte a magnitude em escala vertical:
+\begin{lstlisting}
+const value = data[bin] / 255;
+const scale = 0.12 + value * 0.88;
+element.style.transform = 'scaleY(' + scale.toFixed(3) + ')';
+\end{lstlisting}
+A opacidade também varia conforme a intensidade. A escala mínima mantém as barras visíveis em níveis baixos.
+
+\section{Atualização em tempo real}
+O ciclo é conduzido por \texttt{requestAnimationFrame}. \texttt{startLiveLoop} inicia o ciclo quando existe analisador, a faixa está efetivamente em reprodução e o carregamento terminou. \texttt{renderFrame} lê o espectro, atualiza os elementos e agenda o quadro seguinte.
+
+As alterações diretas no DOM são realizadas com \texttt{NgZone.runOutsideAngular}. Isso evita executar a detecção de mudanças do Angular a cada quadro. O componente usa \texttt{ResizeObserver} para recalcular a quantidade de barras conforme a largura disponível, considerando largura e espaçamento.
+
+\section{Detecção de silêncio e fallback}
+O visualizador considera a possibilidade de o áudio tocar sem que o analisador receba amostras utilizáveis. Uma causa provável é a ausência de cabeçalhos CORS adequados no recurso externo. Nessa situação, o analisador pode fornecer valores zerados.
+
+O componente soma os valores dos bins em cada quadro. Se ainda não observou sinal e acumula 120 quadros silenciosos, interrompe o modo real e retorna ao fallback CSS. A 60 quadros por segundo, esse limite representa aproximadamente dois segundos. O fallback não representa o espectro real da música; é uma animação independente para manter a interface funcional.
+
+\section{Condições para análise real}
+São necessárias: suporte do navegador à Web Audio API; criação do grafo em contexto permitido; carregamento do recurso com configuração CORS adequada; cabeçalhos do servidor de mídia que autorizem a origem; e reprodução efetiva, fora do buffering.
+
+A configuração \texttt{crossOrigin = 'anonymous'} deve ocorrer antes de atribuir a URL. Ela não obriga o servidor remoto a permitir a origem. A autorização depende dos cabeçalhos retornados pelo Audius ou pelo host de mídia após redirecionamento.
+
+\chapter{Banco de dados e persistência}
+\section{Supabase e PostgreSQL}
+O Supabase fornece autenticação e acesso ao PostgreSQL. A configuração local está em \arquivo{supabase/config.toml}. O projeto local é identificado como \texttt{spotify}; a configuração habilita API, banco, autenticação, Realtime e Storage. O limite de arquivo configurado para Storage local é 50 MiB.
+
+A migração \arquivo{20260517192304\_auth\_owned\_library.sql} cria \texttt{playlists}, \texttt{playlist\_tracks} e \texttt{favorites}.
+
+\section{Tabela playlists}
+Armazena UUID, proprietário, nome, descrição, capa e datas de criação e atualização. \texttt{user\_id} referencia \texttt{auth.users(id)} com exclusão em cascata. O nome deve conter entre 1 e 80 caracteres após remoção de espaços externos. A descrição aceita até 240 caracteres.
+
+\section{Tabela playlist\_tracks}
+Associa faixas às playlists e armazena identificador externo, título, artista, álbum, miniatura, duração, URL de reprodução e posição. A combinação \texttt{playlist\_id, track\_id} é única. A chave estrangeira para playlist utiliza exclusão em cascata.
+
+\section{Tabela favorites}
+Registra favoritos por usuário. Armazena \texttt{user\_id}, \texttt{track\_id} e metadados suficientes para reconstruir o objeto de faixa. A combinação de usuário e faixa é única, permitindo operação \texttt{upsert}.
+
+\section{Índices e integridade}
+A migração cria índices para consultas ordenadas por usuário e data em playlists e favoritos, além de índice para recuperar faixas de uma playlist pela ordem. Estabelece restrições de duração não negativa, limites textuais e unicidade.
+
+\section{Dados persistidos e não persistidos}
+O banco armazena informações de organização e metadados de faixas, incluindo identificador Audius e URL de reprodução. As tabelas da biblioteca não armazenam o conteúdo binário do áudio. O arquivo musical permanece sob responsabilidade da infraestrutura externa. A configuração Supabase habilita Storage, mas isso não comprova que a aplicação esteja armazenando músicas nesse serviço. A implementação analisada utiliza tabelas PostgreSQL para metadados.
+
+\chapter{Segurança no backend e no banco}
+\section{Autenticação Bearer}
+O middleware \arquivo{backend/src/modules/auth/auth.middleware.ts} exige o cabeçalho \texttt{Authorization} no formato Bearer. O token é validado com \texttt{auth.getUser(accessToken)}. Tokens ausentes ou inválidos resultam em HTTP 401. Após validação, o identificador do usuário e o token são anexados à requisição.
+
+\section{Row Level Security}
+A migração ativa RLS nas três tabelas da biblioteca. As políticas permitem operações para usuários autenticados e verificam a correspondência entre a identidade da sessão e o proprietário do registro.
+
+Na tabela \texttt{playlists}, as políticas comparam \texttt{auth.uid()} com \texttt{user\_id}. A inserção utiliza \texttt{WITH CHECK}. Em \texttt{playlist\_tracks}, as políticas verificam a propriedade por meio de consulta à tabela \texttt{playlists}. Em \texttt{favorites}, as políticas verificam diretamente \texttt{user\_id}. Leitura, inserção, atualização e exclusão são autorizadas separadamente.
+
+RLS atua no banco: mesmo que uma chamada alcance a API de dados, as políticas limitam os registros acessíveis à identidade autenticada.
+
+\section{Separação de chaves Supabase}
+O arquivo \arquivo{backend/src/lib/supabase.ts} instancia clientes com a chave publicável e também um cliente administrativo com \texttt{SUPABASE\_SERVICE\_ROLE\_KEY}. Define ainda \texttt{createSupabaseUserClient(accessToken)}, que injeta o token do usuário no cabeçalho Authorization.
+
+As operações de \arquivo{library.service.ts} utilizam \texttt{createSupabaseUserClient}. Portanto, a biblioteca opera no contexto do usuário e pode ser submetida às políticas RLS. O cliente administrativo está definido, mas sua declaração não demonstra uso nas operações regulares da biblioteca.
+
+A chave de serviço possui privilégios elevados e deve permanecer exclusivamente no servidor. Não deve ser incluída em arquivos de ambiente do frontend, código entregue ao navegador, repositório público ou logs.
+
+\section{Validação e limites de requisição}
+Zod valida variáveis de ambiente na inicialização. O backend possui módulo de esquemas para dados da biblioteca. A validação de negócio deve ocorrer no servidor, sem depender dos controles visuais do cliente. O parser JSON do Express está limitado a 1 MB, reduzindo a aceitação de corpos excessivamente grandes.
+
+\section{CORS e limites de segurança}
+CORS restringe quais origens de navegador podem ler respostas do backend, mas não substitui a validação de token. Clientes que não são navegadores podem emitir requisições HTTP independentemente da política CORS do navegador. A autorização das rotas privadas depende do middleware Bearer e das políticas RLS.
+
+\chapter{Serviços da biblioteca e operações de dados}
+\section{Listagem de playlists}
+\texttt{listPlaylists} cria cliente Supabase associado ao token, consulta playlists ordenadas pela data de criação e recupera as faixas das playlists retornadas. \texttt{mapPlaylist} agrupa faixas pelo identificador da playlist e converte registros para o modelo de domínio.
+
+Essa estratégia usa uma consulta para playlists e outra para as faixas relacionadas, evitando uma consulta individual para cada playlist.
+
+\section{Criação, atualização e exclusão}
+A criação insere o identificador do usuário, nome e descrição. Depois consulta novamente a playlist para retornar a representação completa. A atualização altera nome, descrição e data de atualização. A exclusão remove o registro e verifica se alguma linha foi afetada; na ausência, retorna 404.
+
+\section{Inclusão e remoção de faixas}
+Na inclusão, o serviço consulta a playlist e verifica se a faixa já existe. Se existir, atualiza metadados. Caso contrário, consulta a maior posição atual, calcula a próxima posição e insere o registro. A remoção verifica a existência e propriedade da playlist e exclui a associação correspondente.
+
+\section{Favoritos}
+A inclusão utiliza \texttt{upsert} com conflito em \texttt{user\_id,track\_id}, assegurando uma chave única por usuário e faixa. A remoção filtra pelo identificador da faixa; RLS limita o efeito aos registros que o usuário pode excluir.
+
+\chapter{Fluxos principais}
+\section{Pesquisa de músicas}
+\begin{enumerate}
+\item A tela recebe o texto digitado.
+\item O serviço Angular envia consulta, limite e deslocamento ao backend.
+\item O controlador Audius encaminha os parâmetros ao serviço.
+\item O serviço consulta o endpoint Audius com Axios.
+\item Os resultados são filtrados por disponibilidade e restrição de stream.
+\item Os objetos externos são normalizados para o tipo interno \texttt{Track}.
+\item O backend retorna faixas e \texttt{hasMore}.
+\item A tela atualiza a lista e solicita páginas adicionais durante a rolagem.
+\end{enumerate}
+
+\section{Acesso à biblioteca}
+\begin{enumerate}
+\item O frontend envia o token no cabeçalho Authorization.
+\item O middleware valida o token com Supabase Auth.
+\item O identificador do usuário é associado à requisição.
+\item O serviço cria cliente Supabase com o token daquele usuário.
+\item A consulta é executada no PostgreSQL e submetida às políticas RLS.
+\item Os registros são convertidos para modelos de playlist e faixa.
+\item O backend devolve a resposta ao frontend.
+\end{enumerate}
+
+\section{Reprodução e visualizador}
+A reprodução utiliza a URL de stream da faixa selecionada. O PlayerService controla o elemento de áudio e emite estados à interface. O visualizador observa o analisador e os estados de reprodução e carregamento. Quando o áudio está disponível, o componente lê os bins de frequência a cada quadro. Sem sinal válido, retorna à animação CSS.
+
+\chapter{Pontos de atenção e recomendações}
+\section{Gestão de segredos}
+O arquivo \arquivo{backend/.env.example} documenta variáveis necessárias. O arquivo real \arquivo{backend/.env} deve permanecer fora do versionamento. Recomenda-se verificar \arquivo{.gitignore} e o histórico do repositório para assegurar que chaves de serviço não tenham sido publicadas.
+
+\section{Uso do cliente administrativo}
+O cliente \texttt{supabaseAdminClient} deve ser utilizado somente quando uma operação privilegiada for realmente necessária. Para operações associadas a um usuário, a abordagem atual de criar cliente com o token preserva a avaliação de RLS.
+
+\section{Política CORS}
+As origens devem refletir os ambientes suportados. A expressão regular de rede privada é útil para desenvolvimento local, mas deve ser avaliada antes de ser mantida em produção.
+
+\section{Dependência do Audius}
+Pesquisa e reprodução dependem da disponibilidade, políticas e endpoints do Audius. Uma indisponibilidade externa pode afetar catálogo ou reprodução sem que o backend Melodix esteja fora do ar. O tratamento de erros deve distinguir falhas de catálogo, de stream e internas.
+
+\section{URL de reprodução}
+O projeto persiste a URL de stream junto aos metadados. A reprodução futura depende da estabilidade e das regras do endpoint Audius. O código constrói uma URL de stream com \texttt{app\_name}, em vez de armazenar URL temporária assinada.
+
+\section{Observabilidade e testes}
+O backend possui \texttt{/health}. Recomenda-se complementar essa verificação com logs estruturados, métricas de latência, acompanhamento de erros externos e testes de autenticação, RLS, paginação, normalização de faixas e comportamento do player.
+
+\chapter{Inventário de arquivos relevantes}
+\begin{longtable}{p{0.49\textwidth}p{0.42\textwidth}}
+\toprule
+\textbf{Arquivo ou diretório} & \textbf{Responsabilidade}\\
+\midrule
+\arquivo{README.md} & Funcionalidades, arquitetura e execução.\\
+\arquivo{package.json} & Dependências e scripts do frontend.\\
+\arquivo{backend/package.json} & Dependências e scripts do backend.\\
+\arquivo{src/app/core/core.module.ts} & Serviços centrais e interceptor.\\
+\arquivo{src/app/app.component.ts} & Navegação, mini-player e mensagens.\\
+\arquivo{src/app/core/services/player.service.ts} & Reprodução, estados e grafo Web Audio.\\
+\arquivo{src/app/core/services/audius.service.ts} & Cliente frontend da API Audius interna.\\
+\arquivo{src/app/components/player/player.component.ts} & Controles e interações do player.\\
+\arquivo{src/app/components/audio-visualizer/audio-visualizer.component.ts} & Leitura de frequência e barras.\\
+\arquivo{src/app/pages/search/} & Pesquisa, resultados, paginação e seleção.\\
+\arquivo{backend/src/server.ts} & Inicialização Express, CORS e rotas.\\
+\arquivo{backend/src/config/env.ts} & Validação de configuração com Zod.\\
+\arquivo{backend/src/lib/supabase.ts} & Clientes Supabase e credenciais.\\
+\arquivo{backend/src/modules/auth/auth.middleware.ts} & Validação Bearer.\\
+\arquivo{backend/src/modules/audius/} & Rotas, controladores, cliente HTTP e serviço Audius.\\
+\arquivo{backend/src/modules/library/} & Operações de playlists e favoritos.\\
+\arquivo{supabase/config.toml} & Configuração local do Supabase.\\
+\arquivo{supabase/migrations/20260517192304\_auth\_owned\_library.sql} & Tabelas, índices, RLS e permissões.\\
+\arquivo{supabase/migrations/20260518002513\_spotify\_connections.sql} & Tabela de conexões Spotify.\\
+\arquivo{capacitor.config.ts} & Configuração do Capacitor.\\
+\bottomrule
+\end{longtable}
+
+\chapter{Conclusão}
+A arquitetura do Melodix separa interface, regras de backend, catálogo externo e persistência da biblioteca. Angular, Ionic e RxJS estruturam a experiência cliente. Express e TypeScript fornecem a API intermediária. Audius fornece dados do catálogo e infraestrutura de streaming. Supabase Auth e PostgreSQL sustentam a identidade e os dados pessoais da biblioteca.
+
+Os mecanismos de segurança observados incluem validação de tokens Bearer, clientes Supabase vinculados ao token do usuário, políticas Row Level Security, validação de configuração por Zod, limite do corpo JSON e política CORS por origem. A chave de serviço Supabase é uma credencial privilegiada e deve permanecer restrita ao servidor.
+
+A reprodução utiliza o elemento de áudio do navegador. A análise de frequência é feita pela Web Audio API por meio de um grafo com \texttt{MediaElementAudioSourceNode} e \texttt{AnalyserNode}. A configuração CORS do elemento e os cabeçalhos retornados pelo servidor de mídia determinam se o analisador terá acesso às amostras. O fallback CSS mantém a apresentação visual quando a análise real não é possível.
+
+Esta documentação descreve o comportamento identificado nos arquivos examinados. Configurações de implantação, disponibilidade de serviços externos e versões efetivamente instaladas podem variar entre ambientes.
+
+\appendix
+\chapter{Referências técnicas}
+\begin{itemize}
+\item Angular: \url{https://angular.dev/}
+\item Ionic Framework: \url{https://ionicframework.com/docs}
+\item RxJS: \url{https://rxjs.dev/}
+\item Capacitor: \url{https://capacitorjs.com/docs}
+\item Node.js: \url{https://nodejs.org/docs/}
+\item Express: \url{https://expressjs.com/}
+\item TypeScript: \url{https://www.typescriptlang.org/docs/}
+\item Zod: \url{https://zod.dev/}
+\item Supabase Auth: \url{https://supabase.com/docs/guides/auth}
+\item Supabase RLS: \url{https://supabase.com/docs/guides/database/postgres/row-level-security}
+\item Audius API: \url{https://docs.audius.org/}
+\item MDN Web Audio API: \url{https://developer.mozilla.org/docs/Web/API/Web_Audio_API}
+\item MDN CORS: \url{https://developer.mozilla.org/docs/Web/HTTP/CORS}
+\end{itemize}
+\end{document}
