@@ -1,0 +1,23 @@
+{
+  "name": "melodix-mp3-converter",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AWS Lambda que converte o original de uma faixa do Audius para MP3 320 kbps e guarda no S3",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "layer:ffmpeg": "node scripts/build-ffmpeg-layer.mjs",
+    "convert:local": "tsx scripts/convert-local.ts"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "3.1173.0",
+    "@aws-sdk/s3-request-presigner": "3.1173.0"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "8.10.164",
+    "@types/node": "^22.10.0",
+    "esbuild": "0.28.2",
+    "tsx": "^4.19.2",
+    "typescript": "~5.9.0"
+  }
+}
