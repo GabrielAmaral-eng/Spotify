@@ -1,22 +1,34 @@
 // Edge Function (FaaS) de download de faixas do Audius.
 //
-// GET  /functions/v1/download-track?id=<trackId>  -> arquivo (attachment)
-// HEAD /functions/v1/download-track?id=<trackId>  -> so os cabecalhos (o app
-//      usa para checar 403 e descobrir o nome/extensao antes de baixar)
+// GET  /functions/v1/download-track?id=<trackId>         -> arquivo (attachment)
+// GET  /functions/v1/download-track?id=<trackId>&link=1  -> JSON { url, fileName }
+// HEAD /functions/v1/download-track?id=<trackId>         -> so os cabecalhos
 //
 // 1. Busca a faixa no Audius e confere se o artista liberou o download.
-// 2. Puxa o arquivo do endpoint oficial /v1/tracks/{id}/download (nunca do
-//    /stream) e devolve em streaming com Content-Disposition: attachment,
-//    para o navegador/app salvar como "<Artista> - <Titulo>.<ext>".
+// 2. Com MP3_CONVERTER_URL configurada (padrao em producao): pede a Lambda
+//    melodix-mp3-converter (AWS) o MP3 320 kbps da faixa. A Lambda baixa o
+//    original pelo /download oficial, converte com ffmpeg, guarda no S3 e
+//    devolve um link assinado; aqui respondemos 302 para ele (ou o JSON, no
+//    modo link=1, usado pelo app para mostrar o carregamento).
+// 3. Sem a Lambda: repassa o arquivo ORIGINAL do /download oficial em
+//    streaming (FLAC/WAV/MP3, conforme o artista enviou).
 //
-// Publica (verify_jwt = false em supabase/config.toml): baixar nao exige conta.
+// Nunca usa o /stream. Publica (verify_jwt = false): baixar nao exige conta.
 //
 // Variaveis/secrets:
-//   ALLOWED_ORIGINS  origens liberadas no CORS, separadas por virgula
-//   AUDIUS_APP_NAME  app_name enviado ao Audius (padrao "Melodix")
+//   ALLOWED_ORIGINS       origens liberadas no CORS, separadas por virgula
+//   AUDIUS_APP_NAME       app_name enviado ao Audius (padrao "Melodix")
+//   MP3_CONVERTER_URL     Function URL da Lambda (sem ela, entrega o original)
+//   MP3_CONVERTER_SECRET  segredo compartilhado com a Lambda
 
 const AUDIUS_API = 'https://api.audius.co/v1';
 const APP_NAME = Deno.env.get('AUDIUS_APP_NAME')?.trim() || 'Melodix';
+
+const CONVERTER_URL = Deno.env.get('MP3_CONVERTER_URL')?.trim() || '';
+const CONVERTER_SECRET = Deno.env.get('MP3_CONVERTER_SECRET')?.trim() || '';
+// A primeira conversao de uma faixa leva de segundos a ~1 min; depois fica em
+// cache no S3. Fica abaixo do limite de tempo das Edge Functions (150 s).
+const CONVERTER_TIMEOUT_MS = 120_000;
 
 // Sem o secret, libera so as origens de desenvolvimento e do Capacitor.
 const DEFAULT_ORIGINS = [
@@ -74,7 +86,9 @@ Deno.serve(async (request: Request): Promise<Response> => {
     return json({ error: 'Metodo nao permitido. Use GET.' }, 405, cors);
   }
 
-  const id = new URL(request.url).searchParams.get('id')?.trim() ?? '';
+  const params = new URL(request.url).searchParams;
+  const id = params.get('id')?.trim() ?? '';
+  const wantsLink = params.has('link');
 
   if (!TRACK_ID_PATTERN.test(id)) {
     return json({ error: 'Informe um id de faixa valido (?id=...).' }, 400, cors);
@@ -96,6 +110,12 @@ Deno.serve(async (request: Request): Promise<Response> => {
         403,
         cors,
       );
+    }
+
+    const baseName = sanitizeFileName(`${track.user?.name ?? 'Artista'} - ${track.title}`);
+
+    if (CONVERTER_URL) {
+      return await serveMp3(id, `${baseName}.mp3`, { isHead, wantsLink }, cors);
     }
 
     const upstream = await fetchWithTimeout(
@@ -126,8 +146,13 @@ Deno.serve(async (request: Request): Promise<Response> => {
     const { head, body } = await peekStream(upstream.body, 16);
     const extension = sniffExtension(head) ??
       pickExtension(upstream.headers.get('content-disposition'));
-    const baseName = sanitizeFileName(`${track.user?.name ?? 'Artista'} - ${track.title}`);
     const fileName = `${baseName}.${extension}`;
+
+    // Modo link sem a Lambda: o app baixa desta mesma URL (sem link=1).
+    if (wantsLink) {
+      await body.cancel();
+      return json({ url: null, fileName }, 200, cors);
+    }
 
     const headers = new Headers(cors);
     headers.set('Content-Type', pickContentType(extension, upstream.headers.get('content-type')));
@@ -157,6 +182,79 @@ Deno.serve(async (request: Request): Promise<Response> => {
     );
   }
 });
+
+/**
+ * MP3 pela Lambda de conversao. HEAD nao aciona a Lambda (so informa nome e
+ * tipo). GET responde 302 para o link assinado do S3; com link=1, devolve o
+ * link em JSON para o app controlar o carregamento.
+ */
+async function serveMp3(
+  id: string,
+  fileName: string,
+  mode: { isHead: boolean; wantsLink: boolean },
+  cors: Headers,
+): Promise<Response> {
+  if (mode.isHead) {
+    const headers = new Headers(cors);
+    headers.set('Content-Type', 'audio/mpeg');
+    headers.set('Content-Disposition', contentDisposition(fileName));
+    headers.set('X-File-Name', encodeURIComponent(fileName));
+    headers.set('Cache-Control', 'no-store');
+    return new Response(null, { status: 200, headers });
+  }
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), CONVERTER_TIMEOUT_MS);
+  let response: Response;
+
+  try {
+    response = await fetch(`${CONVERTER_URL.replace(/\/$/, '')}/?id=${encodeURIComponent(id)}`, {
+      headers: { 'x-converter-secret': CONVERTER_SECRET },
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (controller.signal.aborted) {
+      // A Lambda segue convertendo mesmo apos o timeout e guarda o MP3 no S3:
+      // a proxima tentativa ja encontra o arquivo pronto.
+      const headers = new Headers(cors);
+      headers.set('Retry-After', '15');
+      return json(
+        {
+          error: 'A conversao para MP3 ainda esta em andamento. Tente de novo em instantes.',
+          code: 'CONVERTING',
+        },
+        503,
+        headers,
+      );
+    }
+    throw new UpstreamError(`Conversor indisponivel: ${error}`);
+  } finally {
+    clearTimeout(timer);
+  }
+
+  const payload = await response.json().catch(() => null) as
+    | { url?: string; fileName?: string; error?: string; code?: string }
+    | null;
+
+  if (response.status === 403 || response.status === 404) {
+    return json(payload ?? { error: 'Download indisponivel.' }, response.status, cors);
+  }
+
+  if (!response.ok || !payload?.url) {
+    throw new UpstreamError(`Conversor respondeu ${response.status}: ${payload?.error ?? ''}`);
+  }
+
+  const result = { url: payload.url, fileName: payload.fileName ?? fileName };
+
+  if (mode.wantsLink) {
+    return json(result, 200, cors);
+  }
+
+  const headers = new Headers(cors);
+  headers.set('Location', result.url);
+  headers.set('Cache-Control', 'no-store');
+  return new Response(null, { status: 302, headers });
+}
 
 /** Metadados da faixa; null quando o Audius diz que ela nao existe. */
 async function fetchTrack(id: string): Promise<AudiusTrack | null> {
