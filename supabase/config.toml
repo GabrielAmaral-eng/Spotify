@@ -406,3 +406,10 @@ s3_secret_key = "env(S3_SECRET_KEY)"
 # declarative_schema_path = "./database"
 # JSON string passed through to pg-delta SQL formatting.
 # format_options = "{\"keywordCase\":\"upper\",\"indent\":2,\"maxWidth\":80,\"commaStyle\":\"trailing\"}"
+
+# Download de faixas (FaaS). Publico: baixar nao exige login, entao o
+# gateway nao deve exigir JWT. Secrets: ALLOWED_ORIGINS, AUDIUS_APP_NAME.
+[functions.download-track]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/download-track/index.ts"
