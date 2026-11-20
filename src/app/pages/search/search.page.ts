@@ -12,6 +12,7 @@ import {
   tap
 } from 'rxjs';
 import { AccountGateService } from '../../core/services/account-gate.service';
+import { DownloadService } from '../../core/services/download.service';
 import { PlayerService } from '../../core/services/player.service';
 import { PlaylistService } from '../../core/services/playlist.service';
 import { AudiusService, TrackSearchPage } from '../../core/services/audius.service';
@@ -31,6 +32,7 @@ export class SearchPage implements OnInit, OnDestroy {
   private readonly playlistService = inject(PlaylistService);
   private readonly authService = inject(AuthService);
   private readonly accountGate = inject(AccountGateService);
+  private readonly downloadService = inject(DownloadService);
   private readonly actionSheetController = inject(ActionSheetController);
   private readonly alertController = inject(AlertController);
   private readonly toastController = inject(ToastController);
@@ -39,6 +41,7 @@ export class SearchPage implements OnInit, OnDestroy {
 
   readonly favoriteIds$ = this.playlistService.favoriteIds$;
   readonly isAuthenticated$ = this.authService.isAuthenticated$;
+  readonly downloadState$ = this.downloadService.state$;
   readonly isPlaying$ = this.playerService.isPlaying$;
   readonly currentTrack$ = this.playerService.currentTrack$;
   results: Track[] = [];
@@ -325,6 +328,11 @@ export class SearchPage implements OnInit, OnDestroy {
         this.presentToast('Não foi possível atualizar os favoritos.');
       }
     });
+  }
+
+  /** Baixar nao exige conta: so faixas com download liberado mostram o botao. */
+  download(track: Track): void {
+    this.downloadService.download(track).catch(() => undefined);
   }
 
   async addToPlaylist(track: Track): Promise<void> {

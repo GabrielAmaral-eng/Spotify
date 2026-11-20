@@ -137,6 +137,8 @@
         (playTrack)="play($event)"
         (toggleFavorite)="toggleFavorite($event)"
         (addToPlaylist)="addToPlaylist($event)"
+        [downloading]="(downloadState$ | async)?.trackId === track.id"
+        (download)="download($event)"
       ></app-track-item>
     </ng-container>
 

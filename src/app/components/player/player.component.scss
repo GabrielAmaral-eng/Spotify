@@ -156,6 +156,44 @@
   right: 0;
 }
 
+/*
+ * Download fica centralizado embaixo do play, entre coracao e +. O span
+ * externo segura o tooltip (botao desabilitado nao recebe hover).
+ */
+.utility-button--download {
+  display: flex;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.utility-button__inner {
+  --background: transparent;
+  --background-activated: transparent;
+  --background-focused: transparent;
+  --background-hover: transparent;
+  --box-shadow: none;
+  --color: #ffffff;
+  --padding-end: 0;
+  --padding-start: 0;
+  height: 100%;
+  margin: 0;
+  width: 100%;
+
+  ion-spinner {
+    height: 22px;
+    width: 22px;
+  }
+
+  small {
+    font-size: 0.7rem;
+    font-weight: 700;
+  }
+}
+
+.utility-button__inner[disabled] {
+  opacity: 0.4;
+}
+
 .player-progress-row {
   align-items: center;
   display: flex;
@@ -459,6 +497,12 @@ ion-range {
 :host(.embedded) .utility-button--playlist {
   order: 1;
   right: auto;
+}
+
+:host(.embedded) .utility-button--download {
+  order: 2;
+  left: auto;
+  transform: none;
 }
 
 :host(.embedded) .player-progress {

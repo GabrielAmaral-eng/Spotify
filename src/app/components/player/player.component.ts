@@ -1,8 +1,9 @@
 import { Component, ElementRef, HostBinding, HostListener, Input, OnDestroy, OnInit, ViewChild, inject } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { ActionSheetController, ToastController } from '@ionic/angular';
-import { Subject, takeUntil } from 'rxjs';
+import { Observable, Subject, of, switchMap, takeUntil } from 'rxjs';
 import { AccountGateService } from '../../core/services/account-gate.service';
+import { DownloadService } from '../../core/services/download.service';
 import { PlayerService } from '../../core/services/player.service';
 import { PlaylistService } from '../../core/services/playlist.service';
 import { SharedModule } from '../../shared/shared.module';
@@ -21,6 +22,7 @@ export class PlayerComponent implements OnInit, OnDestroy {
   private readonly actionSheetController = inject(ActionSheetController);
   private readonly toastController = inject(ToastController);
   private readonly accountGate = inject(AccountGateService);
+  private readonly downloadService = inject(DownloadService);
   private readonly destroy$ = new Subject<void>();
 
   /** Versao compacta para encaixe na pagina de busca. */
@@ -33,6 +35,15 @@ export class PlayerComponent implements OnInit, OnDestroy {
   readonly isLoading$ = this.playerService.isLoading$;
   readonly progress$ = this.playerService.progress$;
   readonly favoriteIds$ = this.playlistService.favoriteIds$;
+  readonly downloadState$ = this.downloadService.state$;
+
+  /**
+   * A faixa atual pode ser baixada? Faixas da busca ja sabem; faixas salvas
+   * (favoritos/playlists) sao consultadas no backend uma vez por faixa.
+   */
+  readonly downloadable$: Observable<boolean> = this.currentTrack$.pipe(
+    switchMap((track) => (track ? this.downloadService.isDownloadable(track) : of(false)))
+  );
 
   /** Volume em porcentagem (0–100) e visibilidade do slider. */
   volume = this.playerService.currentVolume;
@@ -130,6 +141,11 @@ export class PlayerComponent implements OnInit, OnDestroy {
       next: () => undefined,
       error: () => this.presentToast('Não foi possível atualizar os favoritos.')
     });
+  }
+
+  /** Baixar nao exige conta. */
+  download(track: Track): void {
+    this.downloadService.download(track).catch(() => undefined);
   }
 
   async addToPlaylist(track: Track): Promise<void> {

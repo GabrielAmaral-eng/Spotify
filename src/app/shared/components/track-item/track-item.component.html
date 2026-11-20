@@ -21,6 +21,25 @@
     </ion-label>
   </button>
 
+  <!-- Download: so quando o artista liberou (track.downloadable) -->
+  <ion-button
+    *ngIf="canDownload"
+    class="track-item__download"
+    fill="clear"
+    size="small"
+    type="button"
+    slot="end"
+    aria-label="Baixar musica"
+    title="Baixar musica"
+    [disabled]="downloading"
+    (click)="onDownload($event)"
+  >
+    <ion-spinner *ngIf="downloading; else downloadIcon" name="crescent" aria-hidden="true"></ion-spinner>
+    <ng-template #downloadIcon>
+      <ion-icon name="download-outline" aria-hidden="true"></ion-icon>
+    </ng-template>
+  </ion-button>
+
   <div class="track-item__actions" slot="end" *ngIf="showActions">
     <ion-button
       fill="clear"
