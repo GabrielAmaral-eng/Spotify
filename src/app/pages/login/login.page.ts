@@ -1,5 +1,5 @@
 import { Component, OnInit, inject } from '@angular/core';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { trigger, transition, style, animate } from '@angular/animations';
 import { AuthService } from '../../core/services/auth.service';
 
@@ -25,6 +25,7 @@ type AuthMode = 'signin' | 'signup';
 export class LoginPage implements OnInit {
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
   mode: AuthMode = 'signin';
   email = '';
@@ -41,8 +42,19 @@ export class LoginPage implements OnInit {
 
   async ngOnInit(): Promise<void> {
     if (await this.authService.isAuthenticated()) {
-      await this.router.navigateByUrl('/search');
+      await this.router.navigateByUrl(this.returnUrl);
     }
+  }
+
+  /**
+   * Rota para onde voltar depois do login (vinda do authGuard ou do convite
+   * "Entre para salvar"). So aceita caminhos internos; padrao: /search.
+   */
+  private get returnUrl(): string {
+    const raw = this.route.snapshot.queryParamMap.get('returnUrl') ?? '';
+    const isInternal = raw.startsWith('/') && !raw.startsWith('//') && !raw.startsWith('/\\');
+
+    return isInternal && !raw.startsWith('/login') ? raw : '/search';
   }
 
   get title(): string {
@@ -129,7 +141,7 @@ export class LoginPage implements OnInit {
           return;
         }
 
-        await this.router.navigateByUrl('/search');
+        await this.router.navigateByUrl(this.returnUrl);
         return;
       }
 
@@ -141,7 +153,7 @@ export class LoginPage implements OnInit {
       }
 
       if (result.session) {
-        await this.router.navigateByUrl('/search');
+        await this.router.navigateByUrl(this.returnUrl);
         return;
       }
 

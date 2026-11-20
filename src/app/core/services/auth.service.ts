@@ -1,6 +1,14 @@
 import { Injectable, inject } from '@angular/core';
 import { AuthError, Session, User } from '@supabase/supabase-js';
-import { BehaviorSubject, Observable } from 'rxjs';
+import {
+  BehaviorSubject,
+  Observable,
+  distinctUntilChanged,
+  from,
+  map,
+  shareReplay,
+  switchMap
+} from 'rxjs';
 import { SupabaseService } from './supabase.service';
 
 export interface AuthResult {
@@ -16,6 +24,18 @@ export class AuthService {
   private readonly ready = this.bootstrap();
 
   readonly session$: Observable<Session | null> = this.sessionSubject.asObservable();
+
+  /**
+   * Indica, de forma reativa, se ha sessao ativa. So emite depois que a sessao
+   * persistida foi lida (bootstrap), evitando um "false" falso na abertura do
+   * app; depois acompanha o onAuthStateChange (login, logout, expiracao).
+   */
+  readonly isAuthenticated$: Observable<boolean> = from(this.ready).pipe(
+    switchMap(() => this.session$),
+    map((session) => Boolean(session)),
+    distinctUntilChanged(),
+    shareReplay({ bufferSize: 1, refCount: true })
+  );
 
   constructor() {
     this.supabase.auth.onAuthStateChange((_event, session) => {

@@ -1,6 +1,7 @@
 import { HTTP_INTERCEPTORS } from '@angular/common/http';
 import { NgModule, Optional, SkipSelf } from '@angular/core';
 import { ApiInterceptor } from './interceptors/api.interceptor';
+import { AccountGateService } from './services/account-gate.service';
 import { AuthService } from './services/auth.service';
 import { PlayerService } from './services/player.service';
 import { PlaylistService } from './services/playlist.service';
@@ -11,6 +12,7 @@ import { SupabaseService } from './services/supabase.service';
   providers: [
     SupabaseService,
     AuthService,
+    AccountGateService,
     AudiusService,
     PlayerService,
     PlaylistService,

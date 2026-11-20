@@ -11,7 +11,7 @@ import {
   takeUntil,
   tap
 } from 'rxjs';
-import { Router } from '@angular/router';
+import { AccountGateService } from '../../core/services/account-gate.service';
 import { PlayerService } from '../../core/services/player.service';
 import { PlaylistService } from '../../core/services/playlist.service';
 import { AudiusService, TrackSearchPage } from '../../core/services/audius.service';
@@ -30,7 +30,7 @@ export class SearchPage implements OnInit, OnDestroy {
   private readonly playerService = inject(PlayerService);
   private readonly playlistService = inject(PlaylistService);
   private readonly authService = inject(AuthService);
-  private readonly router = inject(Router);
+  private readonly accountGate = inject(AccountGateService);
   private readonly actionSheetController = inject(ActionSheetController);
   private readonly alertController = inject(AlertController);
   private readonly toastController = inject(ToastController);
@@ -38,6 +38,7 @@ export class SearchPage implements OnInit, OnDestroy {
   private readonly destroy$ = new Subject<void>();
 
   readonly favoriteIds$ = this.playlistService.favoriteIds$;
+  readonly isAuthenticated$ = this.authService.isAuthenticated$;
   readonly isPlaying$ = this.playerService.isPlaying$;
   readonly currentTrack$ = this.playerService.currentTrack$;
   results: Track[] = [];
@@ -106,8 +107,15 @@ export class SearchPage implements OnInit, OnDestroy {
   private readonly wheelContextRadius = 5;
 
   ngOnInit(): void {
-    this.playlistService.loadPlaylists().pipe(takeUntil(this.destroy$)).subscribe();
-    this.playlistService.loadFavorites().pipe(takeUntil(this.destroy$)).subscribe();
+    // Playlists/favoritos so carregam com sessao; ao deslogar o painel fecha.
+    this.playlistService.syncWithSession().pipe(takeUntil(this.destroy$)).subscribe();
+    this.authService.isAuthenticated$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((authenticated) => {
+        if (!authenticated) {
+          this.showPlaylists = false;
+        }
+      });
 
     this.searchTerms.pipe(
       debounceTime(400),
@@ -172,13 +180,31 @@ export class SearchPage implements OnInit, OnDestroy {
     // Impede que o clique no botão chegue ao listener de "clicar fora" do
     // painel, que senão fecharia o painel no mesmo clique que o abre/fecha.
     event.stopPropagation();
+
+    if (!this.showPlaylists && !this.accountGate.requireAccount('Entre para ver suas playlists')) {
+      return;
+    }
+
     this.showPlaylists = !this.showPlaylists;
   }
 
-  async logout(): Promise<void> {
-    this.playerService.stop();
-    await this.authService.signOut();
-    await this.router.navigateByUrl('/login');
+  /**
+   * Botao da conta: com sessao, sai (a musica continua tocando, so playlists e
+   * favoritos somem); sem sessao, leva ao login e volta para a busca depois.
+   */
+  async onAccountButton(): Promise<void> {
+    if (!this.authService.currentSession) {
+      await this.accountGate.goToLogin();
+      return;
+    }
+
+    try {
+      await this.authService.signOut();
+      this.showPlaylists = false;
+      this.presentToast('Você saiu da sua conta.');
+    } catch {
+      this.presentToast('Não foi possível sair agora.');
+    }
   }
 
   onSelectPlaylist(playlist: Playlist): void {
@@ -289,6 +315,10 @@ export class SearchPage implements OnInit, OnDestroy {
   }
 
   toggleFavorite(track: Track): void {
+    if (!this.accountGate.requireAccount()) {
+      return;
+    }
+
     this.playlistService.toggleFavorite(track).subscribe({
       next: () => undefined,
       error: () => {
@@ -298,6 +328,10 @@ export class SearchPage implements OnInit, OnDestroy {
   }
 
   async addToPlaylist(track: Track): Promise<void> {
+    if (!this.accountGate.requireAccount()) {
+      return;
+    }
+
     const allPlaylists = this.playlistService.playlistsSnapshot;
     const playlists = allPlaylists.filter(
       (playlist) => !playlist.tracks.some((t) => t.id === track.id)

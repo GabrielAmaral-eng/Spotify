@@ -29,14 +29,21 @@
         <img src="assets/icon/Library.svg" alt="Library" class="library-icon" />
       </ion-button>
 
-      <!-- Logout Button -->
-      <ion-button
-        class="logout-btn"
-        aria-label="Sair"
-        (click)="logout()"
-      >
-        <ion-icon name="log-out-outline" class="logout-icon" aria-hidden="true"></ion-icon>
-      </ion-button>
+      <!-- Conta: "Sair" com sessao, "Entrar" sem sessao -->
+      <ng-container *ngIf="{ value: isAuthenticated$ | async } as auth">
+        <ion-button
+          class="logout-btn"
+          [attr.aria-label]="auth.value ? 'Sair' : 'Entrar'"
+          [title]="auth.value ? 'Sair' : 'Entrar'"
+          (click)="onAccountButton()"
+        >
+          <ion-icon
+            [name]="auth.value ? 'log-out-outline' : 'log-in-outline'"
+            class="logout-icon"
+            aria-hidden="true"
+          ></ion-icon>
+        </ion-button>
+      </ng-container>
     </div>
   </div>
 
