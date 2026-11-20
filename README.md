@@ -333,6 +333,12 @@ Código em `aws/mp3-converter/` (TypeScript, Node.js 22, arm64), com a infraestr
 
 Pré-requisitos: conta AWS, [AWS CLI](https://aws.amazon.com/cli/) configurada (`aws configure`) e [AWS SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html).
 
+O `sam build` usa o esbuild instalado globalmente (ele não acha o da pasta `node_modules`):
+
+```bash
+npm install -g esbuild
+```
+
 ```bash
 cd aws/mp3-converter
 npm ci
