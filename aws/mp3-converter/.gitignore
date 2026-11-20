@@ -5,3 +5,5 @@ samconfig.toml
 layers/ffmpeg/bin/
 # Saida de `npm run convert:local`
 out/
+# Zips para deploy manual pelo console
+dist/
