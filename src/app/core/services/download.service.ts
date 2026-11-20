@@ -18,15 +18,25 @@ export interface DownloadState {
 /** Pasta (dentro de Documents) onde o app salva as musicas no celular. */
 const MOBILE_FOLDER = 'Melodix';
 
+/** Depois desse tempo preparando, avisa que a conversao pode demorar. */
+const SLOW_PREPARE_MS = 2500;
+
+/** Link pronto para baixar, devolvido pela Edge Function (modo link=1). */
+interface DownloadLink {
+  url: string;
+  fileName: string;
+}
+
 /**
  * Baixa faixas pela Edge Function download-track (Supabase), que confere se
- * o artista liberou o download e devolve o arquivo com o nome
- * "Artista - Titulo.ext".
+ * o artista liberou o download e pede a Lambda de conversao (AWS) o MP3
+ * 320 kbps "Artista - Titulo.mp3". A funcao responde, no modo link=1, um link
+ * temporario do arquivo pronto (a primeira conversao pode levar ate ~1 min).
  *
- * - Web: confere a faixa com HEAD (para mostrar o 403 num toast) e navega
- *   para a URL da funcao; o Content-Disposition faz o navegador baixar.
- * - Android/iOS: baixa com @capacitor/file-transfer para Documents/Melodix e
- *   oferece compartilhar/abrir com @capacitor/share.
+ * - Web: pede o link (403 vira toast) e navega para ele; o
+ *   Content-Disposition do link faz o navegador baixar sem sair da pagina.
+ * - Android/iOS: pede o link e baixa com @capacitor/file-transfer para
+ *   Documents/Melodix, oferecendo compartilhar/abrir com @capacitor/share.
  *
  * Nao exige login.
  */
@@ -97,43 +107,75 @@ export class DownloadService {
   // ---------------------------------------------------------------- Web ---
 
   private async downloadWeb(track: Track): Promise<void> {
-    const url = this.buildUrl(track);
+    let link: DownloadLink;
 
-    // Pre-checagem: um 403/404 vira toast em vez de abrir uma pagina JSON.
-    // Se a checagem em si falhar (rede/CORS), tenta o download mesmo assim.
-    const status = await this.headStatus(url);
-    if (status !== null && status !== 200) {
-      throw new DownloadError(status);
+    try {
+      link = await this.requestLink(track);
+    } catch (error) {
+      if (error instanceof DownloadError) {
+        throw error;
+      }
+      // Falha de rede/CORS ao pedir o link: a URL direta da funcao tambem
+      // baixa (ela redireciona para o arquivo), so sem o aviso de 403.
+      link = { url: this.buildUrl(track), fileName: '' };
     }
 
     // Navegar para uma resposta "attachment" nao sai da pagina: o navegador
     // so salva o arquivo. (<a download> nao serve para outra origem.)
-    window.location.assign(url);
+    window.location.assign(link.url);
     this.presentToast('Download iniciado.');
   }
 
-  private async headStatus(url: string): Promise<number | null> {
+  /**
+   * Pede a funcao o link do MP3 (converte na primeira vez). Erros HTTP viram
+   * DownloadError com o status; um aviso aparece se a preparacao demorar.
+   */
+  private async requestLink(track: Track): Promise<DownloadLink> {
+    let slowToast: HTMLIonToastElement | null = null;
+    let finished = false;
+
+    const slowTimer = setTimeout(() => {
+      this.toastController
+        .create({
+          message: 'Preparando o MP3... na primeira vez pode levar até 1 minuto.',
+          position: 'bottom'
+        })
+        .then((toast) => {
+          if (finished) {
+            return;
+          }
+          slowToast = toast;
+          return toast.present();
+        })
+        .catch(() => undefined);
+    }, SLOW_PREPARE_MS);
+
     try {
-      const response = await fetch(url, { method: 'HEAD', cache: 'no-store' });
-      return response.status;
-    } catch {
-      return null;
+      const response = await fetch(`${this.buildUrl(track)}&link=1`, { cache: 'no-store' });
+
+      if (!response.ok) {
+        throw new DownloadError(response.status);
+      }
+
+      const body = (await response.json()) as { url?: string | null; fileName?: string | null };
+
+      return {
+        // url null = funcao sem conversor: baixa direto da propria funcao.
+        url: body.url || this.buildUrl(track),
+        fileName: body.fileName || this.fallbackFileName(track)
+      };
+    } finally {
+      finished = true;
+      clearTimeout(slowTimer);
+      await (slowToast as HTMLIonToastElement | null)?.dismiss().catch(() => undefined);
     }
   }
 
   // ------------------------------------------------------- Android / iOS ---
 
   private async downloadNative(track: Track): Promise<void> {
-    const url = this.buildUrl(track);
-
-    // O HEAD confirma a liberacao e traz o nome com a extensao real do
-    // arquivo (o original do artista pode ser FLAC/WAV, nao so mp3).
-    const head = await fetch(url, { method: 'HEAD', cache: 'no-store' }).catch(() => null);
-    if (head && head.status !== 200) {
-      throw new DownloadError(head.status);
-    }
-
-    const fileName = this.fileNameFrom(head, track);
+    // O link ja vem com o nome final ("Artista - Titulo.mp3"); 403 vira toast.
+    const { url, fileName } = await this.requestLink(track);
     await this.ensureStoragePermission();
 
     await Filesystem.mkdir({
@@ -205,17 +247,8 @@ export class DownloadService {
     return `${MOBILE_FOLDER}/${base} (${Date.now()})${extension}`;
   }
 
-  private fileNameFrom(head: Response | null, track: Track): string {
-    const header = head?.headers.get('X-File-Name');
-
-    if (header) {
-      try {
-        return decodeURIComponent(header);
-      } catch {
-        // cai no nome montado abaixo
-      }
-    }
-
+  /** Nome usado se a funcao nao informar um (nao deveria acontecer). */
+  private fallbackFileName(track: Track): string {
     const raw = `${track.artist} - ${track.title}`.replace(/[\\/:*?"<>|]/g, '_').trim();
     return `${raw || 'faixa'}.mp3`;
   }
@@ -257,7 +290,11 @@ export class DownloadService {
       return 'Música não encontrada no Audius.';
     }
 
-    if (status === 502 || status === 503 || status === 504) {
+    if (status === 503) {
+      return 'Ainda convertendo para MP3. Tente de novo em alguns segundos.';
+    }
+
+    if (status === 502 || status === 504) {
       return 'O Audius não respondeu agora. Tente novamente.';
     }
 
