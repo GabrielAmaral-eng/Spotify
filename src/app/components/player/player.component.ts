@@ -133,7 +133,7 @@ export class PlayerComponent implements OnInit, OnDestroy {
   }
 
   toggleFavorite(track: Track): void {
-    if (!this.accountGate.requireAccount()) {
+    if (!this.accountGate.requireAccount('Curtir músicas')) {
       return;
     }
 
@@ -149,7 +149,7 @@ export class PlayerComponent implements OnInit, OnDestroy {
   }
 
   async addToPlaylist(track: Track): Promise<void> {
-    if (!this.accountGate.requireAccount()) {
+    if (!this.accountGate.requireAccount('Adicionar músicas a playlists')) {
       return;
     }
 

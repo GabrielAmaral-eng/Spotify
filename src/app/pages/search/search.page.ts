@@ -184,7 +184,7 @@ export class SearchPage implements OnInit, OnDestroy {
     // painel, que senão fecharia o painel no mesmo clique que o abre/fecha.
     event.stopPropagation();
 
-    if (!this.showPlaylists && !this.accountGate.requireAccount('Entre para ver suas playlists')) {
+    if (!this.showPlaylists && !this.accountGate.requireAccount('Ver suas playlists')) {
       return;
     }
 
@@ -318,7 +318,7 @@ export class SearchPage implements OnInit, OnDestroy {
   }
 
   toggleFavorite(track: Track): void {
-    if (!this.accountGate.requireAccount()) {
+    if (!this.accountGate.requireAccount('Curtir músicas')) {
       return;
     }
 
@@ -336,7 +336,7 @@ export class SearchPage implements OnInit, OnDestroy {
   }
 
   async addToPlaylist(track: Track): Promise<void> {
-    if (!this.accountGate.requireAccount()) {
+    if (!this.accountGate.requireAccount('Adicionar músicas a playlists')) {
       return;
     }
 

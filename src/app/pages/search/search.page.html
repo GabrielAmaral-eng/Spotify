@@ -29,20 +29,29 @@
         <img src="assets/icon/Library.svg" alt="Library" class="library-icon" />
       </ion-button>
 
-      <!-- Conta: "Sair" com sessao, "Entrar" sem sessao -->
+      <!-- Conta: "Sair" com sessao; "Entrar" (com texto) para visitantes -->
       <ng-container *ngIf="{ value: isAuthenticated$ | async } as auth">
         <ion-button
+          *ngIf="auth.value; else loginButton"
           class="logout-btn"
-          [attr.aria-label]="auth.value ? 'Sair' : 'Entrar'"
-          [title]="auth.value ? 'Sair' : 'Entrar'"
+          aria-label="Sair"
+          title="Sair"
           (click)="onAccountButton()"
         >
-          <ion-icon
-            [name]="auth.value ? 'log-out-outline' : 'log-in-outline'"
-            class="logout-icon"
-            aria-hidden="true"
-          ></ion-icon>
+          <ion-icon name="log-out-outline" class="logout-icon" aria-hidden="true"></ion-icon>
         </ion-button>
+
+        <ng-template #loginButton>
+          <ion-button
+            class="login-btn"
+            aria-label="Entrar"
+            title="Entrar na sua conta"
+            (click)="onAccountButton()"
+          >
+            <ion-icon name="log-in-outline" class="login-btn__icon" aria-hidden="true"></ion-icon>
+            <span class="login-btn__label">Entrar</span>
+          </ion-button>
+        </ng-template>
       </ng-container>
     </div>
   </div>

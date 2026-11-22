@@ -5,8 +5,15 @@ import { authGuard } from './core/guards/auth.guard';
 // Ouvir musica e publico; so playlists e biblioteca exigem conta.
 const routes: Routes = [
   {
-    path: 'login',
+    path: 'auth',
     loadChildren: () => import('./pages/login/login.module').then((m) => m.LoginPageModule)
+  },
+  {
+    // Rota antiga: mantida para links salvos (os query params, como
+    // returnUrl, sao preservados no redirecionamento).
+    path: 'login',
+    redirectTo: 'auth',
+    pathMatch: 'full'
   },
   {
     path: 'home',

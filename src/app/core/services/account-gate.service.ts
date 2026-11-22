@@ -1,44 +1,62 @@
 import { Injectable, inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { ToastController } from '@ionic/angular';
+import { AlertController } from '@ionic/angular';
 import { AuthService } from './auth.service';
+
+/** Rota da tela de login/cadastro. */
+export const AUTH_ROUTE = '/auth';
 
 /**
  * Porteiro das acoes que exigem conta (curtir, playlists, biblioteca).
  * Ouvir musica e livre; quando o visitante tenta salvar algo, nenhuma chamada
- * a API e feita e um toast oferece ir para o login, voltando depois para a
- * tela atual.
+ * a API e feita e um modal explica que a acao precisa de login, oferecendo ir
+ * para /auth e voltar depois para a tela atual.
  */
 @Injectable()
 export class AccountGateService {
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
-  private readonly toastController = inject(ToastController);
+  private readonly alertController = inject(AlertController);
 
-  /** True quando ha sessao; senao mostra o convite para entrar e devolve false. */
-  requireAccount(message = 'Entre para salvar suas músicas'): boolean {
+  /** Evita empilhar modais se o usuario clicar varias vezes. */
+  private modalOpen = false;
+
+  /**
+   * True quando ha sessao; senao abre o modal de login e devolve false.
+   * @param action descricao da acao, ex.: "Curtir músicas".
+   */
+  requireAccount(action = 'Essa ação'): boolean {
     if (this.authService.currentSession) {
       return true;
     }
 
-    this.presentLoginToast(message).catch(() => undefined);
+    this.presentLoginModal(action).catch(() => undefined);
     return false;
   }
 
   /** Vai para o login guardando a rota atual para voltar depois. */
   goToLogin(returnUrl = this.router.url): Promise<boolean> {
-    const queryParams = returnUrl && !returnUrl.startsWith('/login') ? { returnUrl } : {};
-    return this.router.navigate(['/login'], { queryParams });
+    const isAuthPage = returnUrl.startsWith(AUTH_ROUTE) || returnUrl.startsWith('/login');
+    const queryParams = returnUrl && !isAuthPage ? { returnUrl } : {};
+    return this.router.navigate([AUTH_ROUTE], { queryParams });
   }
 
-  private async presentLoginToast(message: string): Promise<void> {
-    const toast = await this.toastController.create({
-      message,
-      duration: 3500,
-      position: 'bottom',
+  private async presentLoginModal(action: string): Promise<void> {
+    if (this.modalOpen) {
+      return;
+    }
+
+    this.modalOpen = true;
+
+    const alert = await this.alertController.create({
+      cssClass: 'login-required-alert',
+      header: 'Faça login para continuar',
+      message: `${action} precisa de login. Ouvir músicas continua liberado sem conta.`,
       buttons: [
+        { text: 'Agora não', role: 'cancel' },
         {
           text: 'Entrar',
+          role: 'confirm',
           handler: () => {
             this.goToLogin().catch(() => undefined);
           }
@@ -46,6 +64,10 @@ export class AccountGateService {
       ]
     });
 
-    await toast.present();
+    alert.onDidDismiss().then(() => {
+      this.modalOpen = false;
+    });
+
+    await alert.present();
   }
 }

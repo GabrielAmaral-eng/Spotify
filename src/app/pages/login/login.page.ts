@@ -54,7 +54,9 @@ export class LoginPage implements OnInit {
     const raw = this.route.snapshot.queryParamMap.get('returnUrl') ?? '';
     const isInternal = raw.startsWith('/') && !raw.startsWith('//') && !raw.startsWith('/\\');
 
-    return isInternal && !raw.startsWith('/login') ? raw : '/search';
+    const isAuthPage = raw.startsWith('/auth') || raw.startsWith('/login');
+
+    return isInternal && !isAuthPage ? raw : '/search';
   }
 
   get title(): string {
