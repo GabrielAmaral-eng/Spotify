@@ -9,7 +9,7 @@
 \definecolor{codebg}{HTML}{F4F6F8}
 \definecolor{codeframe}{HTML}{D4DCE4}
 \definecolor{muted}{HTML}{536273}
-\hypersetup{colorlinks=true,linkcolor=melodixblue,urlcolor=melodixblue,citecolor=melodixblue,pdftitle={Documentação Técnica do Melodix},pdfsubject={Arquitetura, APIs, segurança, persistência e áudio}}
+\hypersetup{colorlinks=true,linkcolor=melodixblue,urlcolor=melodixblue,citecolor=melodixblue,pdftitle={Documentação Técnica do Melodix},pdfsubject={Arquitetura, APIs, funções FaaS, segurança, persistência e áudio}}
 \setstretch{1.18}
 \setlength{\parindent}{1.25cm}
 \setlength{\parskip}{0.25em}
@@ -41,13 +41,13 @@
 \vspace{1.8cm}
 \rule{0.78\textwidth}{0.6pt}\par
 \vspace{0.7cm}
-{\large Arquitetura, tecnologias, serviços, APIs, segurança, persistência e processamento de áudio\par}
+{\large Arquitetura, tecnologias, serviços, APIs, funções FaaS, segurança, persistência e processamento de áudio\par}
 \vspace{0.7cm}
 \rule{0.78\textwidth}{0.6pt}\par
 \vfill
-{\large Documento elaborado a partir da inspeção do código-fonte, arquivos de configuração, rotas e migrações SQL.\par}
+{\large Documento elaborado a partir da inspeção do código-fonte, arquivos de configuração, rotas, migrações SQL e funções FaaS.\par}
 \vspace{1.4cm}
-{\large Outubro de 2026\par}
+{\large Novembro de 2026\par}
 \end{titlepage}
 \pagenumbering{roman}
 \tableofcontents
@@ -57,36 +57,44 @@
 
 \chapter*{Apresentação}
 \addcontentsline{toc}{chapter}{Apresentação}
-Este documento descreve a implementação técnica do Melodix, aplicação de reprodução e organização de músicas com interface web e possibilidade de empacotamento para Android. A análise considera o README, arquivos \arquivo{package.json}, serviços Angular, módulos Express, configurações do Supabase e migrações SQL.
+Este documento descreve a implementação técnica do Melodix, aplicação de reprodução, organização e download de músicas com interface web e possibilidade de empacotamento para Android. A análise considera o README, arquivos \arquivo{package.json}, serviços Angular, módulos Express, configurações do Supabase, migrações SQL, a Edge Function \arquivo{supabase/functions/download-track} e a função AWS Lambda em \arquivo{aws/mp3-converter}.
 
 O Melodix utiliza o catálogo público do Audius para localizar faixas e obter endereços de reprodução. A autenticação e a biblioteca pessoal são apoiadas pelo Supabase. O navegador reproduz o áudio por meio de um elemento HTML de áudio e, quando as condições de origem permitem, disponibiliza amostras espectrais para o visualizador construído com a Web Audio API.
+
+Na versão atual, ouvir música não exige conta: a pesquisa, o player e a tela inicial são públicos, e o login é solicitado apenas para ações que salvam dados, como curtir faixas e montar playlists. A versão também acrescenta o download de faixas em MP3, restrito às músicas cujo artista liberou o download no Audius. O download é implementado como função como serviço (FaaS), em duas etapas: uma Supabase Edge Function aplica a regra de permissão e entrega o arquivo, e uma função AWS Lambda converte o arquivo original para MP3 e o mantém em cache no Amazon S3.
 
 As versões indicadas são as declarações de dependência encontradas nos manifestos do projeto. Faixas com \texttt{\string^} ou \texttt{\string~} representam intervalos semver, não uma confirmação da versão efetivamente instalada. O README informa Node.js 18 ou superior.
 
 \chapter{Visão geral do sistema}
 \section{Objetivo e funcionalidades}
-O Melodix reúne pesquisa e reprodução musical com recursos de biblioteca individual. O README descreve:
+O Melodix reúne pesquisa, reprodução e download de músicas com recursos opcionais de biblioteca individual. O README descreve:
 \begin{itemize}
-\item cadastro e autenticação por e-mail e senha via Supabase Auth;
+\item pesquisa e reprodução de faixas sem necessidade de conta;
+\item cadastro e autenticação por e-mail e senha via Supabase Auth, na rota \texttt{/auth}, com retorno à tela anterior após o login;
+\item modal de login exibido quando um visitante tenta curtir uma faixa, adicioná-la a uma playlist ou abrir as playlists;
 \item pesquisa de faixas no catálogo Audius;
 \item paginação dos resultados e carregamento adicional durante a rolagem;
 \item reprodução, pausa, faixa anterior e próxima, progresso e volume;
+\item download em MP3 de 320 kbps das faixas liberadas pelo artista, na web e no aplicativo;
 \item visualizador de áudio com Web Audio API e alternativa animada em CSS;
 \item criação e manutenção de playlists e músicas favoritas;
 \item execução em navegador e empacotamento Android por Capacitor.
 \end{itemize}
 
 \section{Limites funcionais observados}
-O catálogo e a origem do áudio são providos pelo Audius. O projeto não mantém um servidor próprio para armazenar ou distribuir os arquivos musicais. O backend Melodix intermedeia consultas de catálogo e mantém os dados da biblioteca, enquanto o cliente de áudio acessa diretamente o endereço de streaming.
+O catálogo e a origem do áudio são providos pelo Audius. O projeto não mantém um servidor próprio para o streaming: o backend Melodix intermedeia consultas de catálogo e mantém os dados da biblioteca, enquanto o cliente de áudio acessa diretamente o endereço de streaming.
+
+A única cópia de áudio mantida pelo projeto é o cache de arquivos MP3 gerados para download, armazenado no Amazon S3 com expiração automática. O download só é oferecido para faixas com \texttt{is\_downloadable} verdadeiro e sem condições adicionais (\texttt{is\_download\_gated}), como seguir o artista ou comprar a faixa.
 
 Existe uma migração SQL denominada \arquivo{20260518002513\_spotify\_connections.sql}, que cria uma tabela para conexões Spotify. A existência dessa tabela, isoladamente, não comprova um fluxo OAuth funcional. Na inspeção realizada, não foi identificada implementação correspondente de autorização, callback e renovação de tokens Spotify. A integração de catálogo e reprodução efetivamente identificada está baseada no Audius.
 
 \section{Organização em camadas}
-A solução divide-se em três áreas:
+A solução divide-se em quatro áreas:
 \begin{enumerate}
-\item \textbf{Frontend}: Angular e Ionic, responsáveis por telas, interação, estado de reprodução e chamadas HTTP.
+\item \textbf{Frontend}: Angular e Ionic, responsáveis por telas, interação, estado de reprodução, controle de acesso às ações de conta e chamadas HTTP.
 \item \textbf{Backend}: API HTTP Express e TypeScript, responsável por validar requisições, autenticar operações da biblioteca, consultar Audius e acessar Supabase.
-\item \textbf{Serviços externos e persistência}: Audius para catálogo e stream, Supabase Auth para identidade e PostgreSQL para dados da biblioteca.
+\item \textbf{Funções FaaS}: Supabase Edge Function \texttt{download-track}, executada em Deno, e AWS Lambda \texttt{melodix-mp3-converter}, executada em Node.js com ffmpeg, com cache no Amazon S3.
+\item \textbf{Serviços externos e persistência}: Audius para catálogo, stream e arquivo original de download; Supabase Auth para identidade; e PostgreSQL para dados da biblioteca.
 \end{enumerate}
 
 \chapter{Tecnologias, versões e ferramentas}
@@ -104,6 +112,9 @@ RxJS & \texttt{\string~7.8.0} & Fluxos assíncronos e estado observável.\\
 TypeScript & \texttt{\string~5.9.0} & Tipagem e compilação do frontend.\\
 Capacitor Core & \texttt{8.3.4} & Ponte entre aplicação web e recursos nativos.\\
 Capacitor CLI & \texttt{8.3.4} & Sincronização do projeto nativo.\\
+Capacitor File Transfer & \texttt{2.0.6} & Download do MP3 no aplicativo.\\
+Capacitor Filesystem & \texttt{8.1.5} & Pasta de destino e permissões de armazenamento.\\
+Capacitor Share & \texttt{8.0.3} & Abertura e compartilhamento do arquivo baixado.\\
 Supabase JS & \texttt{\string^2.105.4} & Cliente JavaScript do Supabase.\\
 Ionicons & \texttt{\string^7.0.0} & Ícones da interface.\\
 \bottomrule
@@ -129,13 +140,36 @@ dotenv & \texttt{\string^16.4.7} & Carregamento de variáveis de ambiente.\\
 \end{longtable}
 O \arquivo{backend/tsconfig.json} define ES2022, CommonJS, resolução Node, modo estrito e saída em \arquivo{dist}. O README informa Node.js 18 ou superior.
 
+\section{Funções FaaS}
+O download de músicas utiliza duas funções executadas sob demanda, descritas em detalhe no Capítulo~\ref{cap:faas}.
+
+\begin{longtable}{p{0.30\textwidth}p{0.22\textwidth}p{0.40\textwidth}}
+\toprule
+\textbf{Componente} & \textbf{Versão declarada} & \textbf{Responsabilidade}\\
+\midrule
+Supabase Edge Functions & Deno 2 & Execução da função \texttt{download-track}.\\
+AWS Lambda & Node.js 22, arm64 & Execução da função \texttt{melodix-mp3-converter}.\\
+ffmpeg (via \texttt{ffmpeg-static}) & \texttt{6.1.1} (\texttt{5.3.0}) & Conversão do arquivo original para MP3, publicada como camada (\emph{layer}) da Lambda.\\
+AWS SDK S3 & \texttt{3.1173.0} & Gravação no S3 e geração de URLs pré-assinadas.\\
+TypeScript & \texttt{\string~5.9.0} & Tipagem do código da Lambda.\\
+esbuild & \texttt{0.28.2} & Empacotamento da Lambda em um único módulo ESM.\\
+AWS SAM & --- & Infraestrutura como código (\arquivo{template.yaml}), opcional.\\
+\bottomrule
+\end{longtable}
+
 \section{Ambiente e publicação}
 Para desenvolvimento, o frontend é iniciado com \texttt{ionic serve}; o backend pode ser iniciado por \texttt{npm run backend:dev}. A compilação do backend utiliza \texttt{npm run build} e a execução de produção utiliza \texttt{node dist/server.js}.
 
-O README registra hospedagem do backend no Render, com diretório raiz \arquivo{backend}, comando de build \texttt{npm install \&\& npm run build} e comando de inicialização \texttt{npm start}. Esses dados representam a configuração documentada no repositório, não uma verificação independente do estado atual do serviço remoto.
+O README registra hospedagem do backend no Render, com diretório raiz \arquivo{backend}, comando de build \texttt{npm install \&\& npm run build} e comando de inicialização \texttt{npm start}, publicado a partir da branch \texttt{main}. Esses dados representam a configuração documentada no repositório, não uma verificação independente do estado atual do serviço remoto.
+
+O frontend obtém os endereços dos serviços em \arquivo{src/environments/environment.ts} e \arquivo{environment.prod.ts}: \texttt{apiUrl} (backend), \texttt{supabaseUrl}, \texttt{supabasePublishableKey} e \texttt{downloadFunctionUrl}, que aponta para \texttt{<supabaseUrl>/functions/v1/download-track}.
+
+A Edge Function é publicada com a Supabase CLI (\texttt{supabase functions deploy download-track}). A Lambda pode ser publicada pelo AWS SAM (\texttt{sam build} e \texttt{sam deploy}) ou, quando a conta não permite o CloudFormation, criada manualmente pelo console da AWS com os pacotes gerados a partir do mesmo código.
 
 \section{Aplicativo Android}
 O README descreve a geração do aplicativo Android pelo Capacitor. O processo consiste em compilar a aplicação Ionic em produção, sincronizar os arquivos nativos com \texttt{npx cap sync android} e gerar APK de depuração pelo Gradle. A configuração efetiva do SDK depende do ambiente Android Studio instalado.
+
+No aplicativo, as músicas baixadas são gravadas em \arquivo{Documents/Melodix}. No Android 10, essa gravação exige \texttt{android:requestLegacyExternalStorage="true"} no manifesto; no Android 9 ou anterior, a permissão de escrita no armazenamento, solicitada ao usuário pelo plugin Filesystem. No iOS, as chaves \texttt{UIFileSharingEnabled} e \texttt{LSSupportsOpeningDocumentsInPlace} do \arquivo{Info.plist} tornam os arquivos visíveis no aplicativo Arquivos.
 
 \chapter{Arquitetura do frontend}
 \section{Estrutura de diretórios}
@@ -156,7 +190,7 @@ src/
 As páginas representam contextos de navegação. Os componentes encapsulam partes reutilizáveis da interface. A pasta \arquivo{core} concentra serviços e mecanismos transversais. A pasta \arquivo{shared} reúne modelos, diretivas, pipes e componentes compartilhados.
 
 \section{CoreModule e injeção de dependências}
-O arquivo \arquivo{src/app/core/core.module.ts} registra \texttt{SupabaseService}, \texttt{AuthService}, \texttt{AudiusService}, \texttt{PlayerService} e \texttt{PlaylistService}. Registra também \texttt{ApiInterceptor} no token \texttt{HTTP\_INTERCEPTORS}, com \texttt{multi: true}.
+O arquivo \arquivo{src/app/core/core.module.ts} registra \texttt{SupabaseService}, \texttt{AuthService}, \texttt{AccountGateService}, \texttt{AudiusService}, \texttt{DownloadService}, \texttt{PlayerService} e \texttt{PlaylistService}. Registra também \texttt{ApiInterceptor} no token \texttt{HTTP\_INTERCEPTORS}, com \texttt{multi: true}.
 
 O construtor utiliza \texttt{@Optional()} e \texttt{@SkipSelf()} para detectar uma importação anterior do módulo. Se já houver instância-pai, lança exceção. A verificação evita registros duplicados dos serviços centrais.
 
@@ -169,18 +203,55 @@ O serviço \arquivo{src/app/core/services/player.service.ts} centraliza a reprod
 
 \texttt{BehaviorSubject} entrega o último valor conhecido a novos assinantes. \texttt{Subject} é usado para eventos que não precisam reter estado, como solicitações de faixa anterior ou próxima. O serviço escuta \texttt{timeupdate}, \texttt{ended}, \texttt{waiting} e \texttt{playing} para atualizar os estados da interface.
 
-\subsection{PlaylistService e AuthService}
-O \texttt{PlaylistService} concentra operações da biblioteca e favoritos. O \texttt{AuthService} concentra o fluxo de autenticação do cliente com Supabase. O interceptor HTTP aplica comportamento transversal às chamadas. A implementação exata de cada cabeçalho deve ser conferida diretamente no interceptor em futuras alterações.
+\subsection{AuthService}
+O \texttt{AuthService} concentra o fluxo de autenticação do cliente com Supabase. Além dos métodos de login, cadastro e saída, expõe \texttt{isAuthenticated\$}, um \texttt{Observable<boolean>} reativo. Ele só emite após a leitura da sessão persistida, evitando um falso estado deslogado na abertura do aplicativo, e acompanha o \texttt{onAuthStateChange} do Supabase com \texttt{distinctUntilChanged} e \texttt{shareReplay}. A renovação do token, por não alterar o estado, não gera nova emissão.
+
+\subsection{PlaylistService}
+O \texttt{PlaylistService} concentra operações da biblioteca e favoritos. O método \texttt{syncWithSession()} acompanha \texttt{isAuthenticated\$}: ao entrar uma sessão, carrega playlists e favoritos; ao sair, limpa esse estado por \texttt{clear()}. Sem sessão, nenhuma chamada a \texttt{/library} é feita. O fluxo é compartilhado com \texttt{share()}, de modo que vários componentes inscritos ao mesmo tempo dividem uma única carga.
+
+\subsection{AccountGateService}
+O \texttt{AccountGateService} protege as ações que exigem conta. O método \texttt{requireAccount(acao)} retorna verdadeiro quando há sessão. Caso contrário, não realiza chamada à API e abre um modal (\texttt{AlertController} do Ionic) com o título ``Faça login para continuar'', a descrição da ação e os botões ``Agora não'' e ``Entrar''. O botão ``Entrar'' navega para \texttt{/auth} com o parâmetro \texttt{returnUrl} contendo a rota atual. Uma proteção interna impede que vários cliques empilhem modais.
+
+\subsection{DownloadService}
+O \texttt{DownloadService} implementa o download em duas plataformas. Em ambas, solicita à Edge Function o link do arquivo (\texttt{link=1}). Na web, navega para o link, e o cabeçalho \texttt{Content-Disposition} faz o navegador salvar o arquivo sem sair da página; o atributo \texttt{download} de âncoras não é usado, pois é ignorado em URLs de outra origem. No Android e no iOS, usa \texttt{@capacitor/file-transfer} para gravar em \arquivo{Documents/Melodix}, com progresso, e oferece abrir ou compartilhar o arquivo com \texttt{@capacitor/share}.
+
+O serviço publica o estado do download (faixa e percentual) por \texttt{BehaviorSubject}, mostra um aviso quando a preparação do MP3 demora e converte respostas 403, 404 e 503 em mensagens específicas. O método \texttt{isDownloadable(track)} usa o campo \texttt{downloadable} quando presente; para faixas salvas na biblioteca, que não o possuem, consulta \texttt{/audius/track/:id} uma vez por faixa e guarda o resultado.
+
+\subsection{Interceptor HTTP}
+O interceptor HTTP aplica comportamento transversal às chamadas e anexa o token de acesso apenas quando existe sessão. A implementação exata de cada cabeçalho deve ser conferida diretamente no interceptor em futuras alterações.
+
+\section{Rotas e acesso sem login}
+O arquivo \arquivo{src/app/app-routing.module.ts} define as rotas abaixo. A rota padrão redireciona para \texttt{/search}.
+
+\begin{longtable}{p{0.20\textwidth}p{0.20\textwidth}p{0.52\textwidth}}
+\toprule
+\textbf{Rota} & \textbf{Acesso} & \textbf{Observação}\\
+\midrule
+\texttt{/search} & Público & Pesquisa, roda de seleção e player compacto.\\
+\texttt{/home} & Público & Atalhos e contadores da biblioteca.\\
+\texttt{/player} & Público & Player em tela cheia.\\
+\texttt{/auth} & Público & Login e cadastro; aceita \texttt{returnUrl}.\\
+\texttt{/login} & --- & Redireciona para \texttt{/auth}, preservando os parâmetros.\\
+\texttt{/playlists} & Autenticado & Protegida por \texttt{authGuard}.\\
+\texttt{/library} & Autenticado & Protegida por \texttt{authGuard}.\\
+\bottomrule
+\end{longtable}
+
+O \texttt{authGuard} redireciona visitantes para \texttt{/auth?returnUrl=<rota pedida>}. Após o login, a página de autenticação navega para o \texttt{returnUrl}, aceito somente quando é um caminho interno do aplicativo; nos demais casos, o destino é \texttt{/search}.
 
 \section{Componentes de interface}
-O \texttt{PlayerComponent} oferece play/pause, navegação, volume, progresso, favoritos e inclusão em playlists. A propriedade \texttt{embedded} permite apresentação compacta na tela de busca.
+O \texttt{PlayerComponent} oferece play/pause, navegação, volume, progresso, favoritos, inclusão em playlists e download. A propriedade \texttt{embedded} permite apresentação compacta na tela de busca. O botão de download fica desabilitado, com a dica ``O artista não liberou download'', quando a faixa não pode ser baixada, e mostra carregamento ou percentual durante o download. As ações de favoritar e adicionar a playlist consultam o \texttt{AccountGateService} antes de qualquer chamada.
+
+O \texttt{TrackItemComponent} representa uma faixa nas listas e emite os eventos \texttt{playTrack}, \texttt{toggleFavorite}, \texttt{addToPlaylist}, \texttt{removeTrack} e \texttt{download}. O botão de download aparece apenas quando \texttt{downloadable} é verdadeiro.
+
+No cabeçalho da busca, visitantes veem o botão ``Entrar'', com ícone e texto; usuários autenticados veem o ícone de saída. Sair da conta não interrompe a reprodução, apenas remove playlists e favoritos da tela. A tela de autenticação oferece ainda o link ``Continuar sem conta''.
 
 O componente raiz \texttt{AppComponent} combina a faixa atual com eventos de navegação. O mini-player aparece quando existe faixa selecionada e a rota não começa com \texttt{/search}. Essa regra utiliza \texttt{combineLatest}, \texttt{map}, \texttt{filter} e \texttt{startWith}.
 
 A tela de busca apresenta a roda de seleção, lista de resultados e carregamento de páginas adicionais. O template usa \texttt{trackBy} para identificar itens pela identidade da faixa e reduzir atualizações desnecessárias.
 
 \section{Ciclo de vida e inscrições}
-No componente raiz, \texttt{destroy\$} é utilizado com \texttt{takeUntil} para encerrar inscrições quando o componente é destruído. O método \texttt{ngOnDestroy} emite e conclui o Subject.
+No componente raiz, \texttt{destroy\$} é utilizado com \texttt{takeUntil} para encerrar inscrições quando o componente é destruído. O método \texttt{ngOnDestroy} emite e conclui o Subject. O mesmo padrão encerra as inscrições em \texttt{syncWithSession()} nas telas de busca e inicial e no player.
 
 O visualizador encerra sua inscrição RxJS, desconecta o \texttt{ResizeObserver} e cancela o ciclo de animação com \texttt{cancelAnimationFrame}. Isso evita observadores ativos após a remoção do componente.
 
@@ -256,18 +327,20 @@ POST & \texttt{/library/favorites} & Registra favorito.\\
 DELETE & \texttt{/library/favorites/:trackId} & Remove favorito.\\
 \bottomrule
 \end{longtable}
-As rotas \texttt{/library} são protegidas por \texttt{authMiddleware}. As rotas \texttt{/audius} não aplicam esse middleware, pois a pesquisa do catálogo é pública na implementação observada.
+As rotas \texttt{/library} são protegidas por \texttt{authMiddleware}. As rotas \texttt{/audius} não aplicam esse middleware, pois a pesquisa do catálogo é pública, o que permite ouvir músicas sem conta. O download não passa pelo backend Express: é atendido pelas funções FaaS do Capítulo~\ref{cap:faas}.
 
 \section{Integração Audius}
 O serviço \arquivo{backend/src/modules/audius/audius.service.ts} consulta o gateway \url{https://api.audius.co}. A pesquisa utiliza \texttt{/v1/tracks/search}, enviando \texttt{query}, \texttt{app\_name}, \texttt{limit} e \texttt{offset}. A consulta individual utiliza \texttt{/v1/tracks/:id}.
 
-A resposta externa é convertida para o modelo interno \texttt{Track}. \texttt{isPlayable} rejeita faixas sem identificador, indisponíveis ou com stream restrito. \texttt{normalizeTrack} converte título, artista, arte, duração e gênero para o formato interno.
+A resposta externa é convertida para o modelo interno \texttt{Track}. \texttt{isPlayable} rejeita faixas sem identificador, indisponíveis ou com stream restrito. \texttt{normalizeTrack} converte título, artista, arte, duração e gênero para o formato interno e preenche o campo \texttt{downloadable}.
+
+O campo \texttt{downloadable} é verdadeiro quando \texttt{is\_downloadable} é verdadeiro e \texttt{is\_download\_gated} não é verdadeiro. Faixas com download condicionado a seguir o artista ou comprar a faixa recebem \texttt{false}, pois o endpoint de download do Audius responde 403 nesses casos. Em \arquivo{backend/src/types/track.ts}, o tipo \texttt{SavedTrack} (\texttt{Track} sem \texttt{downloadable}) representa as faixas persistidas na biblioteca, que não armazenam esse campo.
 
 O endereço de reprodução é produzido por \texttt{buildStreamUrl}:
 \begin{lstlisting}
 https://api.audius.co/v1/tracks/{trackId}/stream?app_name={appName}
 \end{lstlisting}
-O código comenta que esse endpoint estável pode responder com redirecionamento HTTP para o conteúdo de áudio. A URL é persistida na biblioteca como referência de reprodução, não como arquivo local.
+O código comenta que esse endpoint estável pode responder com redirecionamento HTTP para o conteúdo de áudio. A URL é persistida na biblioteca como referência de reprodução, não como arquivo local. O endpoint de stream é usado apenas para tocar; o download utiliza o endpoint oficial \texttt{/v1/tracks/\{id\}/download}, descrito no Capítulo~\ref{cap:faas}.
 
 A pesquisa calcula \texttt{hasMore} pela quantidade bruta de itens recebidos antes do filtro de faixas reproduzíveis. Assim, uma página filtrada vazia não é tratada automaticamente como fim do catálogo quando a API ainda retorna itens.
 
@@ -276,6 +349,92 @@ A integração é isolada em \arquivo{audius-http.ts}, que utiliza Axios. Esse i
 
 \section{Supabase Auth}
 O Supabase Auth é utilizado para autenticação por e-mail e senha, conforme o README. No backend, o middleware lê \texttt{Authorization}, extrai o token no formato Bearer e chama \texttt{supabaseAuthClient.auth.getUser(accessToken)}. Token ausente, inválido ou expirado resulta em HTTP 401. Após validação, o identificador do usuário e o token são anexados à requisição.
+
+\chapter{Download de músicas e funções FaaS}
+\label{cap:faas}
+\section{Motivação e arquitetura}
+O download de faixas é implementado como função como serviço (FaaS), em duas funções:
+\begin{lstlisting}
+App --> Edge Function download-track (Supabase)
+          | confere a liberacao do artista
+          v
+        Lambda melodix-mp3-converter (AWS)
+          | baixa o original e converte (ffmpeg)
+          v
+        Amazon S3 (cache dos MP3) --> link assinado --> App
+\end{lstlisting}
+
+O download é um trabalho curto, sem estado e eventual: buscar metadados, validar a permissão do artista e entregar um arquivo. Uma Edge Function executa essa tarefa sob demanda, escala automaticamente e não ocupa o backend Express, que fica livre para a API da biblioteca e não precisa manter conexões longas durante a transferência de arquivos de dezenas de megabytes. A função também resolve uma limitação do navegador: o atributo \texttt{download} de âncoras é ignorado em URLs de outra origem, de modo que apenas um servidor do próprio projeto consegue impor o nome ``Artista - Título.mp3'' e concentrar a regra de só baixar faixas liberadas.
+
+A conversão para MP3 fica numa segunda função, no AWS Lambda, porque exige muito processamento. As Edge Functions do Supabase dispõem de poucos segundos de CPU por requisição, insuficientes para o ffmpeg converter uma faixa inteira. A Lambda permite até 15 minutos de execução, até 10 GB de memória e disco temporário em \arquivo{/tmp}, e só gera custo quando converte uma faixa nova.
+
+\section{Origem do arquivo e conversão}
+O endpoint oficial \texttt{/v1/tracks/\{id\}/download} do Audius entrega o arquivo original enviado pelo artista, frequentemente em FLAC ou WAV, às vezes nomeado como \texttt{.mp3}. O único MP3 pronto do Audius é o servido por \texttt{/stream}, que o projeto não utiliza para download. Por isso, a Lambda converte o original para MP3 CBR de 320 kbps com \texttt{libmp3lame}, mantendo apenas a primeira trilha de áudio e gravando título e artista em tags ID3. Quando o original já é MP3, identificado pelos primeiros bytes (tag ID3 ou cabeçalho de quadro MPEG camada III), o arquivo é enviado sem reconversão, para não perder qualidade.
+
+\section{Edge Function download-track}
+Implementada em \arquivo{supabase/functions/download-track/index.ts}, em TypeScript para Deno. É pública (\texttt{verify\_jwt = false} em \arquivo{supabase/config.toml}), pois baixar não exige conta.
+
+\begin{longtable}{p{0.13\textwidth}p{0.42\textwidth}p{0.39\textwidth}}
+\toprule
+\textbf{Método} & \textbf{Requisição} & \textbf{Resposta}\\
+\midrule
+GET & \texttt{?id=<trackId>} & 302 para o MP3 (\emph{attachment}).\\
+GET & \texttt{?id=<trackId>\&link=1} & JSON com \texttt{url} e \texttt{fileName}; usado pelo aplicativo.\\
+HEAD & \texttt{?id=<trackId>} & Apenas cabeçalhos, incluindo \texttt{X-File-Name}.\\
+OPTIONS & --- & Pré-verificação CORS.\\
+\bottomrule
+\end{longtable}
+
+O fluxo é: validar o identificador; consultar a faixa no Audius; responder 404 se ela não existir ou 403 (\texttt{NOT\_DOWNLOADABLE}) se o artista não liberou o download; chamar a Lambda com o segredo compartilhado; e devolver o link do arquivo. Falhas de comunicação com o Audius ou com o conversor resultam em 502. Se a primeira conversão ultrapassar 120 segundos, a função responde 503 (\texttt{CONVERTING}); a Lambda conclui o trabalho em segundo plano e a tentativa seguinte encontra o arquivo pronto.
+
+Sem a Lambda configurada (\texttt{MP3\_CONVERTER\_URL} vazio), a função entrega o arquivo original em streaming, identificando o formato real pelos primeiros bytes e ajustando extensão e \texttt{Content-Type}. Esse modo é usado em desenvolvimento local sem AWS.
+
+\begin{longtable}{p{0.34\textwidth}p{0.58\textwidth}}
+\toprule
+\textbf{Variável (secret)} & \textbf{Descrição}\\
+\midrule
+\texttt{ALLOWED\_ORIGINS} & Origens liberadas no CORS, separadas por vírgula.\\
+\texttt{AUDIUS\_APP\_NAME} & \texttt{app\_name} enviado ao Audius (padrão Melodix).\\
+\texttt{MP3\_CONVERTER\_URL} & URL da Lambda (\emph{Function URL}).\\
+\texttt{MP3\_CONVERTER\_SECRET} & Segredo compartilhado com a Lambda.\\
+\bottomrule
+\end{longtable}
+
+\section{Lambda melodix-mp3-converter}
+O código fica em \arquivo{aws/mp3-converter/src}, dividido em \arquivo{handler.ts} (requisição, cache e S3), \arquivo{audius.ts} (metadados e download do original) e \arquivo{convert.ts} (ffmpeg e nome do arquivo). A função é exposta por uma \emph{Function URL} em modo \texttt{BUFFERED} e responde apenas a requisições com o cabeçalho \texttt{x-converter-secret} correto.
+
+\begin{enumerate}
+\item Confere o segredo (401 se ausente ou incorreto) e o identificador da faixa (400).
+\item Consulta a faixa no Audius e repete a verificação de liberação (404 ou 403).
+\item Procura \arquivo{mp3/<trackId>.mp3} no bucket S3.
+\item Se o arquivo não existir, baixa o original para \arquivo{/tmp}, converte com o ffmpeg da camada e envia o MP3 ao S3.
+\item Gera uma URL pré-assinada do S3, válida por 15 minutos, que já inclui \texttt{Content-Disposition: attachment} com o nome ``Artista - Título.mp3''.
+\item Responde em JSON com \texttt{url}, \texttt{fileName} e \texttt{cached}.
+\end{enumerate}
+
+\begin{longtable}{p{0.34\textwidth}p{0.58\textwidth}}
+\toprule
+\textbf{Recurso ou variável} & \textbf{Configuração}\\
+\midrule
+Runtime e arquitetura & Node.js 22, arm64; manipulador \texttt{handler.handler}.\\
+Recursos & 2048 MB de memória, 5 minutos de tempo limite, 4096 MB em \arquivo{/tmp}.\\
+Camada \texttt{melodix-ffmpeg} & Binário estático do ffmpeg em \arquivo{/opt/bin/ffmpeg}.\\
+\texttt{BUCKET\_NAME} & Bucket privado, na mesma região da função.\\
+\texttt{CONVERTER\_SECRET} & Segredo com ao menos 32 caracteres.\\
+\texttt{AUDIUS\_APP\_NAME} & \texttt{app\_name} enviado ao Audius.\\
+\texttt{FFMPEG\_PATH} & \arquivo{/opt/bin/ffmpeg}.\\
+\texttt{URL\_TTL\_SECONDS} & Validade do link assinado (900).\\
+\bottomrule
+\end{longtable}
+
+O bucket tem acesso público bloqueado e uma regra de ciclo de vida que expira os objetos do prefixo \arquivo{mp3/} (padrão de 30 dias). O perfil de execução da função precisa de \texttt{s3:GetObject} e \texttt{s3:PutObject} em \arquivo{mp3/*} e de \texttt{s3:ListBucket} com prefixo \arquivo{mp3/}; sem esta última permissão, a consulta de um objeto ausente retornaria 403 em vez de 404.
+
+Como camadas da Lambda são somente leitura e pacotes gerados no Windows podem perder a permissão de execução, a função verifica o binário do ffmpeg na primeira chamada e, se necessário, copia-o para \arquivo{/tmp} e aplica \texttt{chmod}.
+
+\section{Publicação e testes}
+O arquivo \arquivo{aws/mp3-converter/template.yaml} descreve a função, a camada e o bucket para o AWS SAM. O script \texttt{npm run layer:ffmpeg} obtém o binário do ffmpeg para Linux arm64 a partir de qualquer sistema operacional, e \texttt{npm run convert:local} executa a conversão de uma faixa sem AWS. Em contas cuja política da organização (SCP) bloqueia o CloudFormation, os mesmos recursos podem ser criados pelo console da AWS, usando os pacotes da função e da camada.
+
+Na implantação documentada, foram verificados: conversão de FLAC e WAV para MP3 de 320 kbps; primeira conversão em poucos segundos e resposta em cache abaixo de um segundo; 401 sem o segredo; 403 para faixa não liberada; 404 para faixa inexistente; e o redirecionamento 302 da Edge Function para o arquivo no S3. O download no aplicativo Android/iOS ainda deve ser validado em aparelho.
 
 \chapter{CORS e comunicação entre origens}
 \section{Política implementada}
@@ -286,6 +445,11 @@ O servidor configura CORS por meio do pacote \texttt{cors}. A lista explícita d
 \item \texttt{http://localhost} e \texttt{https://localhost}.
 \end{itemize}
 Há também expressão regular para permitir endereços HTTP de rede privada nas faixas 10.x.x.x, 192.168.x.x e 172.16.x.x a 172.31.x.x, desde que utilizem a porta 8100. Requisições sem cabeçalho Origin também são aceitas. Origens não autorizadas recebem erro de CORS. A opção \texttt{credentials: true} habilita requisições com credenciais no contexto CORS, mantendo a validação da origem.
+
+\section{CORS nas funções de download}
+A Edge Function \texttt{download-track} aplica política própria, lida do secret \texttt{ALLOWED\_ORIGINS}. Sem o secret, libera \texttt{http://localhost:8100}, \texttt{capacitor://localhost}, \texttt{http://localhost} e \texttt{https://localhost}. A resposta inclui \texttt{Vary: Origin} e expõe os cabeçalhos \texttt{Content-Disposition}, \texttt{Content-Length}, \texttt{Content-Type} e \texttt{X-File-Name}. Se a origem do frontend publicado não estiver na lista, o navegador bloqueia a leitura do link; o aplicativo recorre então à navegação direta para a função, que ainda redireciona ao arquivo, mas sem exibir a mensagem de faixa não liberada.
+
+A Lambda e o S3 não precisam de CORS: a Lambda é chamada apenas pela Edge Function, de servidor para servidor, e o S3 é acessado por navegação ou pelo download nativo do aplicativo.
 
 \section{O que CORS faz e o que não faz}
 CORS é um mecanismo aplicado pelos navegadores para controlar se uma página pode ler respostas de outra origem. Não é autenticação, não criptografa dados e não torna confiável uma origem externa. A política CORS do backend controla o acesso do frontend à API Melodix; ela não concede, por si só, permissão para o navegador ler o áudio servido pelo Audius.
@@ -300,6 +464,8 @@ A expressão regular para redes privadas é uma conveniência para desenvolvimen
 O Melodix não armazena os bytes das músicas no PostgreSQL. O backend consulta o Audius e devolve metadados e uma URL de stream. O navegador configura o elemento \texttt{HTMLAudioElement} com essa URL e solicita o conteúdo diretamente ao serviço externo.
 
 Esse desenho reduz a responsabilidade de armazenamento e transferência de mídia do backend Melodix. A biblioteca persiste metadados suficientes para apresentar e localizar novamente uma faixa, além da URL de reprodução. A disponibilidade depende do serviço Audius e das condições de acesso ao stream.
+
+A reprodução não depende de autenticação: o endpoint de catálogo é público e o stream é solicitado diretamente ao Audius. Por isso, sair da conta não interrompe a música em execução.
 
 \section{Sequência de reprodução}
 \begin{enumerate}
@@ -392,6 +558,8 @@ A migração cria índices para consultas ordenadas por usuário e data em playl
 \section{Dados persistidos e não persistidos}
 O banco armazena informações de organização e metadados de faixas, incluindo identificador Audius e URL de reprodução. As tabelas da biblioteca não armazenam o conteúdo binário do áudio. O arquivo musical permanece sob responsabilidade da infraestrutura externa. A configuração Supabase habilita Storage, mas isso não comprova que a aplicação esteja armazenando músicas nesse serviço. A implementação analisada utiliza tabelas PostgreSQL para metadados.
 
+Os arquivos MP3 gerados para download também ficam fora do banco: são guardados no Amazon S3 como cache temporário, com expiração automática. O campo \texttt{downloadable} não é persistido nas tabelas da biblioteca; para faixas salvas, ele é consultado no Audius quando necessário, sem exigir nova migração.
+
 \chapter{Segurança no backend e no banco}
 \section{Autenticação Bearer}
 O middleware \arquivo{backend/src/modules/auth/auth.middleware.ts} exige o cabeçalho \texttt{Authorization} no formato Bearer. O token é validado com \texttt{auth.getUser(accessToken)}. Tokens ausentes ou inválidos resultam em HTTP 401. Após validação, o identificador do usuário e o token são anexados à requisição.
@@ -415,6 +583,14 @@ Zod valida variáveis de ambiente na inicialização. O backend possui módulo d
 
 \section{CORS e limites de segurança}
 CORS restringe quais origens de navegador podem ler respostas do backend, mas não substitui a validação de token. Clientes que não são navegadores podem emitir requisições HTTP independentemente da política CORS do navegador. A autorização das rotas privadas depende do middleware Bearer e das políticas RLS.
+
+\section{Controle de acesso no frontend}
+Sem sessão, o frontend não faz chamadas a \texttt{/library}: o carregamento de playlists e favoritos depende de \texttt{syncWithSession()}, e as ações de conta passam pelo \texttt{AccountGateService} antes de qualquer requisição. Esse controle melhora a experiência e evita respostas 401, mas não é uma barreira de segurança; a proteção efetiva continua no middleware Bearer e nas políticas RLS.
+
+\section{Segurança das funções de download}
+A Edge Function é pública por decisão de produto, mas só entrega faixas cujo artista liberou o download e valida o identificador recebido. A Lambda é exposta por uma \emph{Function URL} sem autenticação IAM e protegida pelo segredo do cabeçalho \texttt{x-converter-secret}, comparado em tempo constante. Mesmo com o segredo, a Lambda repete a verificação de liberação e não converte faixas bloqueadas.
+
+O bucket S3 é privado, com acesso público bloqueado; os arquivos só saem por URLs pré-assinadas com validade de 15 minutos. O segredo compartilhado fica nas variáveis da Lambda e nos secrets do Supabase. Arquivos \arquivo{.env}, a configuração local do SAM (\arquivo{samconfig.toml}) e os pacotes de implantação estão excluídos do versionamento.
 
 \chapter{Serviços da biblioteca e operações de dados}
 \section{Listagem de playlists}
@@ -455,6 +631,32 @@ A inclusão utiliza \texttt{upsert} com conflito em \texttt{user\_id,track\_id},
 \item O backend devolve a resposta ao frontend.
 \end{enumerate}
 
+\section{Ouvir sem conta}
+\begin{enumerate}
+\item O aplicativo abre em \texttt{/search} sem exigir login.
+\item A pesquisa consulta \texttt{/audius/search}, rota pública do backend.
+\item O player toca a URL de stream diretamente do Audius.
+\item Enquanto não houver sessão, nenhuma chamada a \texttt{/library} é realizada.
+\end{enumerate}
+
+\section{Ação que exige conta}
+\begin{enumerate}
+\item O visitante tenta curtir uma faixa, adicioná-la a uma playlist ou abrir as playlists.
+\item O \texttt{AccountGateService} abre o modal ``Faça login para continuar''.
+\item O botão ``Entrar'' navega para \texttt{/auth?returnUrl=<tela atual>}.
+\item Após o login, o aplicativo retorna à tela anterior.
+\item O \texttt{PlaylistService} detecta a nova sessão e carrega playlists e favoritos.
+\end{enumerate}
+
+\section{Download de uma faixa}
+\begin{enumerate}
+\item O botão de download aparece somente quando \texttt{downloadable} é verdadeiro.
+\item O \texttt{DownloadService} solicita o link à Edge Function (\texttt{link=1}).
+\item A Edge Function confere a liberação no Audius e chama a Lambda.
+\item A Lambda converte o original para MP3 na primeira solicitação, ou reutiliza o cache do S3, e devolve uma URL pré-assinada.
+\item Na web, o navegador salva ``Artista - Título.mp3''; no aplicativo, o arquivo é gravado em \arquivo{Documents/Melodix} e pode ser compartilhado.
+\end{enumerate}
+
 \section{Reprodução e visualizador}
 A reprodução utiliza a URL de stream da faixa selecionada. O PlayerService controla o elemento de áudio e emite estados à interface. O visualizador observa o analisador e os estados de reprodução e carregamento. Quando o áudio está disponível, o componente lê os bins de frequência a cada quadro. Sem sinal válido, retorna à animação CSS.
 
@@ -466,7 +668,7 @@ O arquivo \arquivo{backend/.env.example} documenta variáveis necessárias. O ar
 O cliente \texttt{supabaseAdminClient} deve ser utilizado somente quando uma operação privilegiada for realmente necessária. Para operações associadas a um usuário, a abordagem atual de criar cliente com o token preserva a avaliação de RLS.
 
 \section{Política CORS}
-As origens devem refletir os ambientes suportados. A expressão regular de rede privada é útil para desenvolvimento local, mas deve ser avaliada antes de ser mantida em produção.
+As origens devem refletir os ambientes suportados. A expressão regular de rede privada é útil para desenvolvimento local, mas deve ser avaliada antes de ser mantida em produção. A variável \texttt{FRONTEND\_URL} do backend e o secret \texttt{ALLOWED\_ORIGINS} da Edge Function devem ser mantidos alinhados com a origem do frontend publicado.
 
 \section{Dependência do Audius}
 Pesquisa e reprodução dependem da disponibilidade, políticas e endpoints do Audius. Uma indisponibilidade externa pode afetar catálogo ou reprodução sem que o backend Melodix esteja fora do ar. O tratamento de erros deve distinguir falhas de catálogo, de stream e internas.
@@ -475,7 +677,17 @@ Pesquisa e reprodução dependem da disponibilidade, políticas e endpoints do A
 O projeto persiste a URL de stream junto aos metadados. A reprodução futura depende da estabilidade e das regras do endpoint Audius. O código constrói uma URL de stream com \texttt{app\_name}, em vez de armazenar URL temporária assinada.
 
 \section{Observabilidade e testes}
-O backend possui \texttt{/health}. Recomenda-se complementar essa verificação com logs estruturados, métricas de latência, acompanhamento de erros externos e testes de autenticação, RLS, paginação, normalização de faixas e comportamento do player.
+O backend possui \texttt{/health}. Recomenda-se complementar essa verificação com logs estruturados, métricas de latência, acompanhamento de erros externos e testes de autenticação, RLS, paginação, normalização de faixas e comportamento do player. A Lambda registra, a cada conversão, o identificador da faixa, o tamanho do arquivo e os tempos de download e total no CloudWatch Logs. Falta validar o download no aplicativo Android/iOS em aparelho e o retorno à tela anterior após um login real.
+
+\section{Funções de download}
+\begin{itemize}
+\item \textbf{Latência da primeira conversão}: pode variar de alguns segundos a cerca de um minuto, sobretudo pelo download do original no Audius; as solicitações seguintes usam o cache.
+\item \textbf{Políticas da organização AWS}: contas vinculadas a organizações podem ter SCPs que bloqueiam o CloudFormation ou outros serviços, exigindo a criação manual dos recursos pelo console.
+\item \textbf{Região}: bucket, camada e função devem estar na mesma região; caso contrário, a URL pré-assinada aponta para a região errada.
+\item \textbf{Custo}: cada conversão nova consome tempo de Lambda com 2 GB de memória, além do armazenamento no S3; faixas em cache geram apenas custo de leitura.
+\item \textbf{Licença}: o binário do ffmpeg é distribuído sob GPL, e a licença acompanha a camada.
+\item \textbf{Hospedagem do backend}: no plano gratuito do Render, o serviço adormece sem uso, e a primeira requisição pode levar até cerca de um minuto.
+\end{itemize}
 
 \chapter{Inventário de arquivos relevantes}
 \begin{longtable}{p{0.49\textwidth}p{0.42\textwidth}}
@@ -485,20 +697,35 @@ O backend possui \texttt{/health}. Recomenda-se complementar essa verificação 
 \arquivo{README.md} & Funcionalidades, arquitetura e execução.\\
 \arquivo{package.json} & Dependências e scripts do frontend.\\
 \arquivo{backend/package.json} & Dependências e scripts do backend.\\
+\arquivo{DOC/Doc_Melodix.tex} & Esta documentação técnica.\\
+\arquivo{src/app/app-routing.module.ts} & Rotas públicas, protegidas e \texttt{/auth}.\\
+\arquivo{src/app/core/guards/auth.guard.ts} & Proteção de rotas com \texttt{returnUrl}.\\
 \arquivo{src/app/core/core.module.ts} & Serviços centrais e interceptor.\\
 \arquivo{src/app/app.component.ts} & Navegação, mini-player e mensagens.\\
+\arquivo{src/app/core/services/auth.service.ts} & Sessão e \texttt{isAuthenticated\$}.\\
+\arquivo{src/app/core/services/account-gate.service.ts} & Modal de login das ações de conta.\\
+\arquivo{src/app/core/services/playlist.service.ts} & Biblioteca e sincronização com a sessão.\\
+\arquivo{src/app/core/services/download.service.ts} & Download na web e no aplicativo.\\
 \arquivo{src/app/core/services/player.service.ts} & Reprodução, estados e grafo Web Audio.\\
 \arquivo{src/app/core/services/audius.service.ts} & Cliente frontend da API Audius interna.\\
-\arquivo{src/app/components/player/player.component.ts} & Controles e interações do player.\\
+\arquivo{src/app/components/player/player.component.ts} & Controles e interações do player, incluindo download.\\
+\arquivo{src/app/shared/components/track-item/} & Item de faixa com curtir, playlist e download.\\
+\arquivo{src/app/pages/login/} & Tela de autenticação (\texttt{/auth}).\\
+\arquivo{src/environments/} & Endereços do backend, Supabase e função de download.\\
 \arquivo{src/app/components/audio-visualizer/audio-visualizer.component.ts} & Leitura de frequência e barras.\\
 \arquivo{src/app/pages/search/} & Pesquisa, resultados, paginação e seleção.\\
 \arquivo{backend/src/server.ts} & Inicialização Express, CORS e rotas.\\
 \arquivo{backend/src/config/env.ts} & Validação de configuração com Zod.\\
 \arquivo{backend/src/lib/supabase.ts} & Clientes Supabase e credenciais.\\
 \arquivo{backend/src/modules/auth/auth.middleware.ts} & Validação Bearer.\\
-\arquivo{backend/src/modules/audius/} & Rotas, controladores, cliente HTTP e serviço Audius.\\
+\arquivo{backend/src/modules/audius/} & Rotas, controladores, cliente HTTP e serviço Audius, incluindo \texttt{downloadable}.\\
 \arquivo{backend/src/modules/library/} & Operações de playlists e favoritos.\\
-\arquivo{supabase/config.toml} & Configuração local do Supabase.\\
+\arquivo{backend/src/types/track.ts} & Tipos \texttt{Track} e \texttt{SavedTrack}.\\
+\arquivo{supabase/config.toml} & Configuração do Supabase e \texttt{verify\_jwt} da função de download.\\
+\arquivo{supabase/functions/download-track/index.ts} & Edge Function de download.\\
+\arquivo{aws/mp3-converter/src/} & Lambda de conversão: requisição, Audius e ffmpeg.\\
+\arquivo{aws/mp3-converter/template.yaml} & Função, camada e bucket (AWS SAM).\\
+\arquivo{aws/mp3-converter/scripts/} & Geração da camada do ffmpeg e teste local.\\
 \arquivo{supabase/migrations/20260517192304\_auth\_owned\_library.sql} & Tabelas, índices, RLS e permissões.\\
 \arquivo{supabase/migrations/20260518002513\_spotify\_connections.sql} & Tabela de conexões Spotify.\\
 \arquivo{capacitor.config.ts} & Configuração do Capacitor.\\
@@ -506,9 +733,11 @@ O backend possui \texttt{/health}. Recomenda-se complementar essa verificação 
 \end{longtable}
 
 \chapter{Conclusão}
-A arquitetura do Melodix separa interface, regras de backend, catálogo externo e persistência da biblioteca. Angular, Ionic e RxJS estruturam a experiência cliente. Express e TypeScript fornecem a API intermediária. Audius fornece dados do catálogo e infraestrutura de streaming. Supabase Auth e PostgreSQL sustentam a identidade e os dados pessoais da biblioteca.
+A arquitetura do Melodix separa interface, regras de backend, funções FaaS, catálogo externo e persistência da biblioteca. Angular, Ionic e RxJS estruturam a experiência cliente. Express e TypeScript fornecem a API intermediária. Audius fornece dados do catálogo e infraestrutura de streaming. Supabase Auth e PostgreSQL sustentam a identidade e os dados pessoais da biblioteca. Ouvir música é livre, e a conta é solicitada apenas para salvar dados.
 
-Os mecanismos de segurança observados incluem validação de tokens Bearer, clientes Supabase vinculados ao token do usuário, políticas Row Level Security, validação de configuração por Zod, limite do corpo JSON e política CORS por origem. A chave de serviço Supabase é uma credencial privilegiada e deve permanecer restrita ao servidor.
+O download foi desenhado como FaaS em duas etapas: a Edge Function do Supabase aplica a regra de liberação do artista e entrega o arquivo, e a Lambda da AWS realiza a conversão para MP3, com cache no S3. Assim, o backend principal permanece leve, cada faixa é convertida uma única vez e o usuário recebe sempre um MP3 nomeado como ``Artista - Título''.
+
+Os mecanismos de segurança observados incluem validação de tokens Bearer, clientes Supabase vinculados ao token do usuário, políticas Row Level Security, validação de configuração por Zod, limite do corpo JSON, política CORS por origem, segredo compartilhado entre as funções de download e URLs pré-assinadas com validade curta para os arquivos no S3. A chave de serviço Supabase é uma credencial privilegiada e deve permanecer restrita ao servidor.
 
 A reprodução utiliza o elemento de áudio do navegador. A análise de frequência é feita pela Web Audio API por meio de um grafo com \texttt{MediaElementAudioSourceNode} e \texttt{AnalyserNode}. A configuração CORS do elemento e os cabeçalhos retornados pelo servidor de mídia determinam se o analisador terá acesso às amostras. O fallback CSS mantém a apresentação visual quando a análise real não é possível.
 
@@ -527,6 +756,12 @@ Esta documentação descreve o comportamento identificado nos arquivos examinado
 \item Zod: \url{https://zod.dev/}
 \item Supabase Auth: \url{https://supabase.com/docs/guides/auth}
 \item Supabase RLS: \url{https://supabase.com/docs/guides/database/postgres/row-level-security}
+\item Supabase Edge Functions: \url{https://supabase.com/docs/guides/functions}
+\item AWS Lambda: \url{https://docs.aws.amazon.com/lambda/}
+\item AWS SAM: \url{https://docs.aws.amazon.com/serverless-application-model/}
+\item Amazon S3, URLs pré-assinadas: \url{https://docs.aws.amazon.com/AmazonS3/latest/userguide/ShareObjectPreSignedURL.html}
+\item FFmpeg: \url{https://ffmpeg.org/documentation.html}
+\item Capacitor File Transfer: \url{https://capacitorjs.com/docs/apis/file-transfer}
 \item Audius API: \url{https://docs.audius.org/}
 \item MDN Web Audio API: \url{https://developer.mozilla.org/docs/Web/API/Web_Audio_API}
 \item MDN CORS: \url{https://developer.mozilla.org/docs/Web/HTTP/CORS}
