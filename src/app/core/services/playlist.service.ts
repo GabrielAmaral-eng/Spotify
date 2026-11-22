@@ -1,7 +1,18 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { BehaviorSubject, Observable, map, tap, of, switchMap } from 'rxjs';
+import {
+  BehaviorSubject,
+  Observable,
+  catchError,
+  forkJoin,
+  map,
+  tap,
+  of,
+  share,
+  switchMap
+} from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { AuthService } from './auth.service';
 import { Playlist } from '../../shared/models/playlist.model';
 import { Track } from '../../shared/models/track.model';
 
@@ -27,9 +38,30 @@ export class PlaylistService {
   private static readonly LIKED_PLAYLIST_NAME = 'músicas curtidas';
 
   private readonly http = inject(HttpClient);
+  private readonly authService = inject(AuthService);
   private readonly apiUrl = environment.apiUrl.replace(/\/$/, '');
   private readonly playlistsSubject = new BehaviorSubject<Playlist[]>([]);
   private readonly favoritesSubject = new BehaviorSubject<Track[]>([]);
+
+  /**
+   * Acompanha a sessao: ao logar carrega playlists e favoritos; ao deslogar
+   * limpa o estado. Sem sessao nenhuma chamada a /library e feita. O share()
+   * faz varios componentes inscritos ao mesmo tempo dividirem uma unica carga.
+   */
+  private readonly sessionSync$: Observable<void> = this.authService.isAuthenticated$.pipe(
+    switchMap((authenticated) => {
+      if (!authenticated) {
+        this.clear();
+        return of(undefined);
+      }
+
+      return forkJoin([this.loadPlaylists(), this.loadFavorites()]).pipe(
+        map(() => undefined),
+        catchError(() => of(undefined))
+      );
+    }),
+    share()
+  );
 
   readonly playlists$ = this.playlistsSubject.asObservable();
   readonly favorites$ = this.favoritesSubject.asObservable();
@@ -43,6 +75,20 @@ export class PlaylistService {
 
   get favoritesSnapshot(): Track[] {
     return this.favoritesSubject.value;
+  }
+
+  /**
+   * Mantem playlists e favoritos sincronizados com a sessao enquanto houver
+   * inscricao (use com takeUntil/destroy$ no componente).
+   */
+  syncWithSession(): Observable<void> {
+    return this.sessionSync$;
+  }
+
+  /** Limpa playlists e favoritos da tela (ex.: apos logout). */
+  clear(): void {
+    this.playlistsSubject.next([]);
+    this.favoritesSubject.next([]);
   }
 
   /** Indica se a playlist é a de "Músicas curtidas". */

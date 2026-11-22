@@ -1,0 +1,9 @@
+node_modules/
+.aws-sam/
+samconfig.toml
+# Binario do ffmpeg gerado por `npm run layer:ffmpeg` (nao versionar ~80 MB)
+layers/ffmpeg/bin/
+# Saida de `npm run convert:local`
+out/
+# Zips para deploy manual pelo console
+dist/

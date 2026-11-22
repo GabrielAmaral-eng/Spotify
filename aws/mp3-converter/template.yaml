@@ -1,0 +1,114 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Melodix - conversor de faixas do Audius para MP3 320 kbps (FaaS).
+  Chamado pela Edge Function download-track do Supabase.
+
+Parameters:
+  ConverterSecret:
+    Type: String
+    NoEcho: true
+    MinLength: 32
+    Description: Segredo compartilhado com a Edge Function (header x-converter-secret).
+  AudiusAppName:
+    Type: String
+    Default: Melodix
+    Description: app_name enviado a API do Audius.
+  CacheDays:
+    Type: Number
+    Default: 30
+    MinValue: 1
+    Description: Dias que um MP3 convertido fica guardado no S3 antes de expirar.
+
+Globals:
+  Function:
+    Runtime: nodejs22.x
+    Architectures: [arm64]
+
+Resources:
+  # MP3s convertidos (cache). Privado: o acesso e so por link assinado.
+  Mp3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      LifecycleConfiguration:
+        Rules:
+          - Id: expira-mp3-convertidos
+            Status: Enabled
+            Prefix: mp3/
+            ExpirationInDays: !Ref CacheDays
+
+  # Binario estatico do ffmpeg em /opt/bin/ffmpeg (gerado por `npm run layer:ffmpeg`).
+  FfmpegLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: melodix-ffmpeg
+      Description: ffmpeg estatico (libmp3lame) para Linux arm64
+      ContentUri: layers/ffmpeg/
+      CompatibleArchitectures: [arm64]
+      CompatibleRuntimes: [nodejs22.x]
+      RetentionPolicy: Delete
+
+  Mp3ConverterFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: melodix-mp3-converter
+      CodeUri: ./
+      Handler: handler.handler
+      # Download do original + conversao: memoria extra tambem da mais CPU.
+      MemorySize: 2048
+      Timeout: 300
+      EphemeralStorage:
+        Size: 4096
+      Layers:
+        - !Ref FfmpegLayer
+      Environment:
+        Variables:
+          BUCKET_NAME: !Ref Mp3Bucket
+          CONVERTER_SECRET: !Ref ConverterSecret
+          AUDIUS_APP_NAME: !Ref AudiusAppName
+          FFMPEG_PATH: /opt/bin/ffmpeg
+          URL_TTL_SECONDS: '900'
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action: [s3:GetObject, s3:PutObject]
+              Resource: !Sub '${Mp3Bucket.Arn}/mp3/*'
+            # Sem ListBucket, o HeadObject de um objeto ausente volta 403 em vez de 404.
+            - Effect: Allow
+              Action: s3:ListBucket
+              Resource: !GetAtt Mp3Bucket.Arn
+              Condition:
+                StringLike:
+                  s3:prefix: ['mp3/*']
+      FunctionUrlConfig:
+        # Protegida pelo segredo compartilhado (header x-converter-secret).
+        AuthType: NONE
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        EntryPoints: [src/handler.ts]
+        Format: esm
+        OutExtension: ['.js=.mjs']
+        Target: es2022
+        Minify: true
+        Sourcemap: false
+        # O AWS SDK (CommonJS) usa require() dentro do bundle ESM.
+        Banner:
+          - "js=import { createRequire } from 'module'; const require = createRequire(import.meta.url);"
+
+Outputs:
+  FunctionUrl:
+    Description: URL da Lambda (use como MP3_CONVERTER_URL na Edge Function).
+    Value: !GetAtt Mp3ConverterFunctionUrl.FunctionUrl
+  BucketName:
+    Description: Bucket onde os MP3 convertidos ficam em cache.
+    Value: !Ref Mp3Bucket

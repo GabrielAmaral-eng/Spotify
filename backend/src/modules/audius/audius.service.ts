@@ -26,6 +26,10 @@ interface AudiusTrack {
   genre: string | null;
   is_stream_gated: boolean;
   is_available: boolean;
+  // O artista decide se a faixa pode ser baixada.
+  is_downloadable?: boolean;
+  // Download liberado so para quem segue/comprou: exige conta no Audius.
+  is_download_gated?: boolean;
 }
 
 interface AudiusSearchResponse {
@@ -95,8 +99,15 @@ class AudiusService {
       album: genre && genre.length > 0 ? genre : 'Single',
       thumbnail,
       duration: track.duration ?? 0,
-      previewUrl: this.buildStreamUrl(track.id)
+      previewUrl: this.buildStreamUrl(track.id),
+      downloadable: this.isDownloadable(track)
     };
+  }
+
+  // Baixavel = artista liberou o download e ele nao esta condicionado a
+  // seguir/comprar (o endpoint /download responde 403 nesses casos).
+  private isDownloadable(track: AudiusTrack): boolean {
+    return track.is_downloadable === true && track.is_download_gated !== true;
   }
 
   // URL estavel do endpoint de stream (302 -> mp3 completo). Diferente da

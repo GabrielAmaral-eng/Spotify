@@ -1,6 +1,9 @@
-import { Component, ElementRef, HostBinding, HostListener, Input, OnInit, ViewChild, inject } from '@angular/core';
+import { Component, ElementRef, HostBinding, HostListener, Input, OnDestroy, OnInit, ViewChild, inject } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { ActionSheetController, ToastController } from '@ionic/angular';
+import { Observable, Subject, of, switchMap, takeUntil } from 'rxjs';
+import { AccountGateService } from '../../core/services/account-gate.service';
+import { DownloadService } from '../../core/services/download.service';
 import { PlayerService } from '../../core/services/player.service';
 import { PlaylistService } from '../../core/services/playlist.service';
 import { SharedModule } from '../../shared/shared.module';
@@ -13,11 +16,14 @@ import { Track } from '../../shared/models/track.model';
   standalone: true,
   imports: [SharedModule, RouterModule],
 })
-export class PlayerComponent implements OnInit {
+export class PlayerComponent implements OnInit, OnDestroy {
   private readonly playerService = inject(PlayerService);
   private readonly playlistService = inject(PlaylistService);
   private readonly actionSheetController = inject(ActionSheetController);
   private readonly toastController = inject(ToastController);
+  private readonly accountGate = inject(AccountGateService);
+  private readonly downloadService = inject(DownloadService);
+  private readonly destroy$ = new Subject<void>();
 
   /** Versao compacta para encaixe na pagina de busca. */
   @Input() @HostBinding('class.embedded') embedded = false;
@@ -29,6 +35,15 @@ export class PlayerComponent implements OnInit {
   readonly isLoading$ = this.playerService.isLoading$;
   readonly progress$ = this.playerService.progress$;
   readonly favoriteIds$ = this.playlistService.favoriteIds$;
+  readonly downloadState$ = this.downloadService.state$;
+
+  /**
+   * A faixa atual pode ser baixada? Faixas da busca ja sabem; faixas salvas
+   * (favoritos/playlists) sao consultadas no backend uma vez por faixa.
+   */
+  readonly downloadable$: Observable<boolean> = this.currentTrack$.pipe(
+    switchMap((track) => (track ? this.downloadService.isDownloadable(track) : of(false)))
+  );
 
   /** Volume em porcentagem (0–100) e visibilidade do slider. */
   volume = this.playerService.currentVolume;
@@ -36,9 +51,14 @@ export class PlayerComponent implements OnInit {
   private volumeDragging = false;
 
   ngOnInit(): void {
-    this.playlistService.loadPlaylists().subscribe();
-    this.playlistService.loadFavorites().subscribe();
+    // Playlists/favoritos so carregam com sessao (e somem ao deslogar).
+    this.playlistService.syncWithSession().pipe(takeUntil(this.destroy$)).subscribe();
     this.volume = this.playerService.currentVolume;
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   toggle(): void {
@@ -113,13 +133,26 @@ export class PlayerComponent implements OnInit {
   }
 
   toggleFavorite(track: Track): void {
+    if (!this.accountGate.requireAccount('Curtir músicas')) {
+      return;
+    }
+
     this.playlistService.toggleFavorite(track).subscribe({
       next: () => undefined,
       error: () => this.presentToast('Não foi possível atualizar os favoritos.')
     });
   }
 
+  /** Baixar nao exige conta. */
+  download(track: Track): void {
+    this.downloadService.download(track).catch(() => undefined);
+  }
+
   async addToPlaylist(track: Track): Promise<void> {
+    if (!this.accountGate.requireAccount('Adicionar músicas a playlists')) {
+      return;
+    }
+
     const playlists = this.playlistService.playlistsSnapshot;
 
     if (playlists.length === 0) {

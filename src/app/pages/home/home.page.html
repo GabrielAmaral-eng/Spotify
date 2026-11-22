@@ -2,9 +2,12 @@
   <ion-toolbar>
     <ion-title>Melodix</ion-title>
     <ion-buttons slot="end">
-      <ion-button aria-label="Sair" (click)="logout()">
-        <ion-icon name="log-out-outline" aria-hidden="true"></ion-icon>
-      </ion-button>
+      <ng-container *ngIf="{ value: isAuthenticated$ | async } as auth">
+        <ion-button [attr.aria-label]="auth.value ? 'Sair' : 'Entrar'" (click)="onAccountButton()">
+          <ion-icon [name]="auth.value ? 'log-out-outline' : 'log-in-outline'" slot="start" aria-hidden="true"></ion-icon>
+          {{ auth.value ? 'Sair' : 'Entrar' }}
+        </ion-button>
+      </ng-container>
     </ion-buttons>
   </ion-toolbar>
 </ion-header>

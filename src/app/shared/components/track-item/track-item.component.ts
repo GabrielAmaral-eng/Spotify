@@ -12,11 +12,22 @@ export class TrackItemComponent {
   @Input() favorite = false;
   @Input() showActions = true;
   @Input() removable = false;
+  /** Download desta faixa em andamento (mostra spinner no botao). */
+  @Input() downloading = false;
 
   @Output() playTrack = new EventEmitter<Track>();
   @Output() toggleFavorite = new EventEmitter<Track>();
   @Output() addToPlaylist = new EventEmitter<Track>();
   @Output() removeTrack = new EventEmitter<Track>();
+  @Output() download = new EventEmitter<Track>();
+
+  /**
+   * O botao de download so aparece quando o artista liberou o download e ha
+   * quem trate o evento (faixas salvas sem o campo nao mostram o botao).
+   */
+  get canDownload(): boolean {
+    return this.track.downloadable === true && this.download.observed;
+  }
 
   onPlay(): void {
     this.playTrack.emit(this.track);
@@ -30,6 +41,14 @@ export class TrackItemComponent {
   onAdd(event: Event): void {
     event.stopPropagation();
     this.addToPlaylist.emit(this.track);
+  }
+
+  onDownload(event: Event): void {
+    event.stopPropagation();
+
+    if (!this.downloading) {
+      this.download.emit(this.track);
+    }
   }
 
   onRemove(event: Event): void {

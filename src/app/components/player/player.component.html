@@ -58,6 +58,35 @@
           >
             <ion-icon name="add-circle-outline" aria-hidden="true"></ion-icon>
           </ion-button>
+
+          <!-- Download: desabilitado (com dica) quando o artista nao liberou -->
+          <ng-container *ngIf="{ allowed: downloadable$ | async, state: downloadState$ | async } as dl">
+            <span
+              class="utility-button utility-button--download"
+              [title]="dl.allowed ? 'Baixar musica' : 'O artista não liberou download'"
+            >
+              <ion-button
+                class="utility-button__inner"
+                fill="clear"
+                type="button"
+                [attr.aria-label]="dl.allowed ? 'Baixar musica' : 'O artista não liberou download'"
+                [disabled]="!dl.allowed || dl.state?.trackId === track.id"
+                (click)="download(track)"
+              >
+                <ng-container *ngIf="dl.state?.trackId === track.id; else downloadIcon">
+                  <small *ngIf="dl.state?.progress !== null && dl.state?.progress !== undefined; else downloadSpinner">
+                    {{ dl.state?.progress }}%
+                  </small>
+                  <ng-template #downloadSpinner>
+                    <ion-spinner name="crescent" aria-hidden="true"></ion-spinner>
+                  </ng-template>
+                </ng-container>
+                <ng-template #downloadIcon>
+                  <ion-icon name="download-outline" aria-hidden="true"></ion-icon>
+                </ng-template>
+              </ion-button>
+            </span>
+          </ng-container>
         </div>
 
         <div class="player-progress-row">

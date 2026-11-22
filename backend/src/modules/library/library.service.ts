@@ -1,4 +1,4 @@
-import type { Track } from '../../types/track';
+import type { SavedTrack as Track } from '../../types/track';
 import { HttpError } from '../../utils/http-error';
 import { createSupabaseUserClient } from '../../lib/supabase';
 

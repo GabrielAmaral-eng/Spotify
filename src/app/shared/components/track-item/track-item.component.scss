@@ -85,6 +85,12 @@ span {
   gap: 4px;
 }
 
+.track-item__download ion-spinner {
+  height: 18px;
+  width: 18px;
+}
+
+.track-item__download,
 .track-item__actions ion-button {
   --color: #ffffff !important;
   color: #ffffff !important;

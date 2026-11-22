@@ -29,14 +29,30 @@
         <img src="assets/icon/Library.svg" alt="Library" class="library-icon" />
       </ion-button>
 
-      <!-- Logout Button -->
-      <ion-button
-        class="logout-btn"
-        aria-label="Sair"
-        (click)="logout()"
-      >
-        <ion-icon name="log-out-outline" class="logout-icon" aria-hidden="true"></ion-icon>
-      </ion-button>
+      <!-- Conta: "Sair" com sessao; "Entrar" (com texto) para visitantes -->
+      <ng-container *ngIf="{ value: isAuthenticated$ | async } as auth">
+        <ion-button
+          *ngIf="auth.value; else loginButton"
+          class="logout-btn"
+          aria-label="Sair"
+          title="Sair"
+          (click)="onAccountButton()"
+        >
+          <ion-icon name="log-out-outline" class="logout-icon" aria-hidden="true"></ion-icon>
+        </ion-button>
+
+        <ng-template #loginButton>
+          <ion-button
+            class="login-btn"
+            aria-label="Entrar"
+            title="Entrar na sua conta"
+            (click)="onAccountButton()"
+          >
+            <ion-icon name="log-in-outline" class="login-btn__icon" aria-hidden="true"></ion-icon>
+            <span class="login-btn__label">Entrar</span>
+          </ion-button>
+        </ng-template>
+      </ng-container>
     </div>
   </div>
 
@@ -130,6 +146,8 @@
         (playTrack)="play($event)"
         (toggleFavorite)="toggleFavorite($event)"
         (addToPlaylist)="addToPlaylist($event)"
+        [downloading]="(downloadState$ | async)?.trackId === track.id"
+        (download)="download($event)"
       ></app-track-item>
     </ng-container>
 
